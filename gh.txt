@@ -1,9 +1,0 @@
-uername : sasparavinit
-pass : 7ZUiQRgK6TrJNTD3
-
-mongo : mongodb+srv://sasparavinit:7ZUiQRgK6TrJNTD3@odooindia.fu14ggm.mongodb.net/
-
-create user 
-user : vinit pass = vinit9399
-
-mongodb+srv://vinit:vinit9399@odooindia.fu14ggm.mongodb.net/odooIndia
