@@ -128,7 +128,7 @@ const Profile = () => {
       const mockBookings = generateMockBookings();
       const filteredBookings = mockBookings.filter((booking) => {
         if (bookingsTab === "cancelled") {
-          return booking.status === "Cancelled";
+          return booking.status === "cancelled";
         }
         return true;
       });
@@ -173,46 +173,58 @@ const Profile = () => {
   const generateMockBookings = () => [
     {
       _id: "1",
-      venue: {
+      venueId: {
         name: "Skyline Badminton Court",
-        location: "Rajkot, Gujarat",
+        address: "Rajkot, Gujarat",
+        city: "Rajkot",
+      },
+      court: {
+        name: "Court A",
         sportType: "Badminton",
       },
-      court: { name: "Court A" },
       date: "2024-01-20",
-      timeSlot: "09:00-10:00",
-      status: "Confirmed",
-      totalAmount: 800,
+      startTime: "09:00",
+      endTime: "10:00",
+      status: "booked",
+      price: 800,
       canCancel: true,
       isCompleted: false,
     },
     {
       _id: "2",
-      venue: {
+      venueId: {
         name: "Elite Tennis Academy",
-        location: "Ahmedabad, Gujarat",
+        address: "Ahmedabad, Gujarat",
+        city: "Ahmedabad",
+      },
+      court: {
+        name: "Court 1",
         sportType: "Tennis",
       },
-      court: { name: "Court 1" },
       date: "2024-01-15",
-      timeSlot: "18:00-19:00",
-      status: "Completed",
-      totalAmount: 1200,
+      startTime: "18:00",
+      endTime: "19:00",
+      status: "completed",
+      price: 1200,
       canCancel: false,
       isCompleted: true,
     },
     {
       _id: "3",
-      venue: {
+      venueId: {
         name: "Champions Cricket Ground",
-        location: "Surat, Gujarat",
+        address: "Surat, Gujarat",
+        city: "Surat",
+      },
+      court: {
+        name: "Ground A",
         sportType: "Cricket",
       },
-      court: { name: "Ground A" },
       date: "2024-01-25",
-      timeSlot: "16:00-18:00",
-      status: "Confirmed",
-      totalAmount: 2000,
+      startTime: "16:00",
+      endTime: "18:00",
+      status: "booked",
+      price: 2000,
       canCancel: true,
       isCompleted: false,
     },
@@ -312,11 +324,14 @@ const Profile = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "Confirmed":
+      case "booked":
+      case "Confirmed": // Support both for backward compatibility
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "Completed":
+      case "completed":
+      case "Completed": // Support both for backward compatibility
         return <CheckCircle className="h-4 w-4 text-blue-500" />;
-      case "Cancelled":
+      case "cancelled":
+      case "Cancelled": // Support both for backward compatibility
         return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
@@ -325,11 +340,14 @@ const Profile = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Confirmed":
+      case "booked":
+      case "Confirmed": // Support both for backward compatibility
         return "bg-green-100 text-green-800";
-      case "Completed":
+      case "completed":
+      case "Completed": // Support both for backward compatibility
         return "bg-blue-100 text-blue-800";
-      case "Cancelled":
+      case "cancelled":
+      case "Cancelled": // Support both for backward compatibility
         return "bg-red-100 text-red-800";
       default:
         return "bg-yellow-100 text-yellow-800";
@@ -613,7 +631,7 @@ const Profile = () => {
                               <div className="flex-1">
                                 <div className="flex items-center justify-between mb-2">
                                   <h3 className="font-semibold text-gray-900">
-                                    {booking.venue.name}
+                                    {booking.venueId?.name || "Unknown Venue"}
                                   </h3>
                                   <div
                                     className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(
@@ -626,31 +644,41 @@ const Profile = () => {
                                 </div>
 
                                 <p className="text-sm text-gray-600 mb-1">
-                                  {booking.venue.sportType} •{" "}
-                                  {booking.court.name}
+                                  {booking.court?.sportType || "Unknown Sport"}{" "}
+                                  • {booking.court?.name || "Unknown Court"}
                                 </p>
 
                                 <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
                                   <div className="flex items-center space-x-1">
                                     <Calendar className="h-4 w-4" />
-                                    <span>{booking.date}</span>
+                                    <span>
+                                      {new Date(
+                                        booking.date
+                                      ).toLocaleDateString()}
+                                    </span>
                                   </div>
                                   <div className="flex items-center space-x-1">
                                     <Clock className="h-4 w-4" />
-                                    <span>{booking.timeSlot}</span>
+                                    <span>
+                                      {booking.startTime} - {booking.endTime}
+                                    </span>
                                   </div>
                                 </div>
 
                                 <div className="flex items-center space-x-1 text-sm text-gray-500">
                                   <MapPin className="h-4 w-4" />
-                                  <span>{booking.venue.location}</span>
+                                  <span>
+                                    {booking.venueId?.address ||
+                                      booking.venueId?.city ||
+                                      "Unknown Location"}
+                                  </span>
                                 </div>
                               </div>
                             </div>
 
                             {/* Action Buttons */}
                             <div className="flex justify-end space-x-2 mt-4">
-                              {booking.status === "Confirmed" &&
+                              {booking.status === "booked" &&
                                 booking.canCancel && (
                                   <button
                                     onClick={() =>

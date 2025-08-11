@@ -22,10 +22,12 @@ import {
   getSportPlaceholder,
   handleImageError,
 } from "../utils/placeholderImages";
+import { useAuth } from "../hooks/useAuth";
 
 const VenueDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [venue, setVenue] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -626,12 +628,14 @@ const VenueDetails = () => {
                       ))}
                     </div>
 
-                    <button
-                      onClick={() => handleBookNow(court)}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
-                    >
-                      Book Now
-                    </button>
+                    {user?.role === "user" && (
+                      <button
+                        onClick={() => handleBookNow(court)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                      >
+                        Book Now
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -696,7 +700,7 @@ const VenueDetails = () => {
       </div>
 
       {/* Booking Modal */}
-      {showBookingModal && selectedCourt && (
+      {user?.role === "user" && showBookingModal && selectedCourt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">

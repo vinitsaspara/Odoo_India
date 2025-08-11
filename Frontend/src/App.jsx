@@ -45,7 +45,7 @@ function App() {
           element={
             <Layout>
               <RoleProtectedRoute
-                allowedRoles={["user", "admin"]}
+                allowedRoles={["user", "admin", "owner"]}
                 redirectTo="/"
               >
                 <VenueDetails />

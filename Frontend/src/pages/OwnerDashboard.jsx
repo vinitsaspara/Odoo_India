@@ -9,7 +9,6 @@ import {
   Plus,
   Edit,
   Eye,
-  Settings,
   BarChart3,
   Building2,
   Clock,
@@ -127,10 +126,6 @@ const OwnerDashboard = () => {
 
   const handleViewVenue = (venueId) => {
     navigate(`/venues/${venueId}`);
-  };
-
-  const handleManageCourts = (venueId) => {
-    navigate(`/owner/venues/${venueId}/courts`);
   };
 
   const handleResubmitVenue = (venueId) => {
@@ -556,16 +551,6 @@ const OwnerDashboard = () => {
                               >
                                 <Edit className="h-4 w-4" />
                                 <span>Edit</span>
-                              </button>
-                            )}
-
-                            {venue.status === "Active" && (
-                              <button
-                                onClick={() => handleManageCourts(venue._id)}
-                                className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 text-sm"
-                              >
-                                <Settings className="h-4 w-4" />
-                                <span>Courts</span>
                               </button>
                             )}
 

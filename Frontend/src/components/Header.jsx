@@ -9,7 +9,6 @@ import {
   Calendar,
   Building2,
   Shield,
-  Settings,
   LogOut,
   Home,
 } from "lucide-react";
@@ -88,7 +87,7 @@ const Header = () => {
     const role = getUserRole();
     const baseItems = [
       { name: "Profile", path: "/profile", icon: User },
-      { name: "Settings", path: "/settings", icon: Settings },
+      // Settings item removed for all roles
     ];
 
     if (role === "user") {
