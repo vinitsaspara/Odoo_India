@@ -181,6 +181,11 @@ const Signup = () => {
         role: formData.role,
       };
 
+      // Add avatar if provided
+      if (profileImage) {
+        registrationData.avatar = profileImage;
+      }
+
       const response = await register(registrationData);
 
       // Redirect based on role

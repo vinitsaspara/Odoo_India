@@ -38,14 +38,37 @@ export const loginUser = createAsyncThunk(
 
 export const registerUser = createAsyncThunk(
     'auth/register',
-    async ({ name, email, password, role }, { rejectWithValue }) => {
+    async ({ name, email, password, role, avatar }, { rejectWithValue }) => {
         try {
-            const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, {
-                name,
-                email,
-                password,
-                role,
-            });
+            // Create FormData if avatar is provided, otherwise use regular JSON
+            let requestData;
+            let config = {};
+
+            if (avatar) {
+                // Use FormData for file upload
+                requestData = new FormData();
+                requestData.append('name', name);
+                requestData.append('email', email);
+                requestData.append('password', password);
+                requestData.append('role', role);
+                requestData.append('avatar', avatar);
+
+                // Don't set Content-Type header - let browser set it with boundary
+                config.headers = {};
+            } else {
+                // Use regular JSON for registration without avatar
+                requestData = {
+                    name,
+                    email,
+                    password,
+                    role,
+                };
+                config.headers = {
+                    'Content-Type': 'application/json'
+                };
+            }
+
+            const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, requestData, config);
 
             // Set token in localStorage and axios defaults
             if (response.data.token) {

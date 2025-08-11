@@ -21,6 +21,7 @@ import {
   ArrowDownRight,
   Shield,
   Settings,
+  X,
 } from "lucide-react";
 import { useVenues } from "../hooks/useVenues";
 import { getSportPlaceholder } from "../utils/placeholderImages";
@@ -47,6 +48,7 @@ const AdminDashboard = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState("this_month");
   const [processingVenue, setProcessingVenue] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [showActionOptions, setShowActionOptions] = useState(null); // Track which venue shows action options
 
   const timeRangeOptions = [
     { value: "today", label: "Today" },
@@ -60,11 +62,8 @@ const AdminDashboard = () => {
     "All",
     "Pending Approval",
     "Active",
-    "Inactive",
-    "Under Maintenance",
     "Rejected",
-    "Under Review",
-    "Needs Revision",
+    "Under Maintenance",
   ];
 
   useEffect(() => {
@@ -117,10 +116,15 @@ const AdminDashboard = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Simplified: Only Accept and Reject actions - Accept function
   const handleActivateVenue = async (venueId) => {
     setProcessingVenue(venueId);
+    setShowActionOptions(null);
     try {
-      await updateStatus(venueId, "Active");
+      await approveVenueById(venueId);
+
+      // Refresh the venues list to show updated data
+      await getAllVenues({ page: 1, limit: 100 });
 
       // Add to recent activity
       const venue = allVenues.find((v) => v._id === venueId);
@@ -128,23 +132,28 @@ const AdminDashboard = () => {
         {
           _id: `activity-${Date.now()}`,
           type: "venue_approved",
-          message: `Venue "${venue?.name || "Unknown"}" has been activated`,
+          message: `Venue "${venue?.name || "Unknown"}" has been accepted`,
           timestamp: new Date().toISOString(),
           user: "Admin User",
         },
         ...prev.slice(0, 4),
       ]);
     } catch (error) {
-      console.error("Error activating venue:", error);
+      console.error("Error accepting venue:", error);
     } finally {
       setProcessingVenue(null);
     }
   };
 
+  // Simplified: Only Accept and Reject actions - Reject function
   const handleDeactivateVenue = async (venueId) => {
     setProcessingVenue(venueId);
+    setShowActionOptions(null);
     try {
-      await updateStatus(venueId, "Inactive");
+      await rejectVenueById(venueId, "Admin review - venue rejected");
+
+      // Refresh the venues list to show updated data
+      await getAllVenues({ page: 1, limit: 100 });
 
       // Add to recent activity
       const venue = allVenues.find((v) => v._id === venueId);
@@ -152,17 +161,23 @@ const AdminDashboard = () => {
         {
           _id: `activity-${Date.now()}`,
           type: "venue_rejected",
-          message: `Venue "${venue?.name || "Unknown"}" has been deactivated`,
+          message: `Venue "${venue?.name || "Unknown"}" has been rejected`,
           timestamp: new Date().toISOString(),
           user: "Admin User",
         },
         ...prev.slice(0, 4),
       ]);
     } catch (error) {
-      console.error("Error deactivating venue:", error);
+      console.error("Error rejecting venue:", error);
     } finally {
       setProcessingVenue(null);
     }
+  };
+
+  // Removed complex status management functions - simplified to Accept/Reject only
+
+  const handleCancelAction = () => {
+    setShowActionOptions(null);
   };
 
   const handleApproveVenue = async (venueId) => {
@@ -683,14 +698,49 @@ const AdminDashboard = () => {
                               </>
                             )}
 
-                            {venue.status === "Active" && (
+                            {/* Simplified: Show only Accept or Reject based on current status */}
+                            {venue.status === "pending" && (
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handleActivateVenue(venue._id)}
+                                  disabled={processingVenue === venue._id}
+                                  className="flex items-center space-x-2 bg-green-100 text-green-700 px-3 py-1 rounded-lg hover:bg-green-200 text-sm disabled:opacity-50"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span>Accept</span>
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeactivateVenue(venue._id)
+                                  }
+                                  disabled={processingVenue === venue._id}
+                                  className="flex items-center space-x-2 bg-red-100 text-red-700 px-3 py-1 rounded-lg hover:bg-red-200 text-sm disabled:opacity-50"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  <span>Reject</span>
+                                </button>
+                              </div>
+                            )}
+
+                            {venue.status === "approved" && (
                               <button
                                 onClick={() => handleDeactivateVenue(venue._id)}
                                 disabled={processingVenue === venue._id}
-                                className="flex items-center space-x-2 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-lg hover:bg-yellow-200 text-sm disabled:opacity-50"
+                                className="flex items-center space-x-2 bg-red-100 text-red-700 px-3 py-1 rounded-lg hover:bg-red-200 text-sm disabled:opacity-50"
                               >
-                                <AlertTriangle className="h-4 w-4" />
-                                <span>Deactivate</span>
+                                <XCircle className="h-4 w-4" />
+                                <span>Reject</span>
+                              </button>
+                            )}
+
+                            {venue.status === "rejected" && (
+                              <button
+                                onClick={() => handleActivateVenue(venue._id)}
+                                disabled={processingVenue === venue._id}
+                                className="flex items-center space-x-2 bg-green-100 text-green-700 px-3 py-1 rounded-lg hover:bg-green-200 text-sm disabled:opacity-50"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Accept</span>
                               </button>
                             )}
 
@@ -705,7 +755,8 @@ const AdminDashboard = () => {
                               </button>
                             )}
 
-                            {venue.status === "Rejected" && (
+                            {(venue.status === "Rejected" ||
+                              venue.status === "Under Maintenance") && (
                               <button
                                 onClick={() => handleApproveVenue(venue._id)}
                                 disabled={processingVenue === venue._id}

@@ -15,6 +15,10 @@ const generateToken = (id) => {
 // @access  Public
 export const registerUser = async (req, res) => {
     try {
+        console.log('Registration request received:');
+        console.log('Body:', req.body);
+        console.log('File:', req.file);
+
         const { name, email, password, role } = req.body;
 
         // Validate input
@@ -105,6 +109,7 @@ export const registerUser = async (req, res) => {
         });
     } catch (error) {
         console.error('User registration error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({
             success: false,
             message: error.message

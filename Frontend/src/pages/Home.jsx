@@ -93,10 +93,14 @@ const Home = () => {
   const generateMockVenues = () => {
     return [
       {
-        _id: "1",
+        _id: "mock-1",
         name: "Sports Complex Arena",
         location: { address: "Satellite, Ahmedabad, Gujarat" },
-        images: [getSportPlaceholder("Sports Arena", 300, 200)],
+        coverImage: { url: getSportPlaceholder("Sports Arena", 300, 200) },
+        images: [
+          { url: getSportPlaceholder("Sports Arena Court 1", 300, 200) },
+          { url: getSportPlaceholder("Sports Arena Court 2", 300, 200) },
+        ],
         rating: 4.5,
         amenities: ["Parking", "Cafeteria", "Locker Room"],
         sportsTypes: ["Football", "Basketball", "Tennis"],
@@ -104,10 +108,14 @@ const Home = () => {
         totalCourts: 8,
       },
       {
-        _id: "2",
+        _id: "mock-2",
         name: "Elite Sports Club",
         location: { address: "Bopal, Ahmedabad, Gujarat" },
-        images: [getSportPlaceholder("Elite Club", 300, 200)],
+        coverImage: { url: getSportPlaceholder("Elite Club", 300, 200) },
+        images: [
+          { url: getSportPlaceholder("Elite Club Pool", 300, 200) },
+          { url: getSportPlaceholder("Elite Club Court", 300, 200) },
+        ],
         rating: 4.8,
         amenities: ["Swimming Pool", "Gym", "Spa"],
         sportsTypes: ["Swimming", "Tennis", "Badminton"],
@@ -115,10 +123,11 @@ const Home = () => {
         totalCourts: 12,
       },
       {
-        _id: "3",
+        _id: "mock-3",
         name: "Community Sports Hub",
         location: { address: "Maninagar, Ahmedabad, Gujarat" },
-        images: [getSportPlaceholder("Community Hub", 300, 200)],
+        coverImage: { url: getSportPlaceholder("Community Hub", 300, 200) },
+        images: [{ url: getSportPlaceholder("Community Hub Field", 300, 200) }],
         rating: 4.2,
         amenities: ["Parking", "Refreshments"],
         sportsTypes: ["Cricket", "Football"],
@@ -126,10 +135,15 @@ const Home = () => {
         totalCourts: 6,
       },
       {
-        _id: "4",
+        _id: "mock-4",
         name: "Premium Sports Center",
         location: { address: "Prahlad Nagar, Ahmedabad, Gujarat" },
-        images: [getSportPlaceholder("Premium Center", 300, 200)],
+        coverImage: { url: getSportPlaceholder("Premium Center", 300, 200) },
+        images: [
+          { url: getSportPlaceholder("Premium Center Court 1", 300, 200) },
+          { url: getSportPlaceholder("Premium Center Court 2", 300, 200) },
+          { url: getSportPlaceholder("Premium Center Lounge", 300, 200) },
+        ],
         rating: 4.7,
         amenities: ["AC Rooms", "Pro Shop", "Coaching"],
         sportsTypes: ["Badminton", "Table Tennis", "Squash"],
@@ -245,97 +259,142 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Book Venues Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Book Venues
-              </h2>
-              <p className="text-gray-600">
-                Discover the best sports venues in your area
-              </p>
-            </div>
-            <button
-              onClick={() => navigate("/venues")}
-              className="flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200"
-            >
-              See all venues
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-red-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-red-800 text-sm">{error}</p>
-                  <p className="text-red-600 text-xs mt-1">
-                    Showing cached venues instead.
-                  </p>
-                </div>
+      {/* Book Venues Section - Only for players/users */}
+      {(!isAuthenticated || user?.role === "user") && (
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                  Book Venues
+                </h2>
+                <p className="text-gray-600">
+                  Discover the best sports venues in your area
+                </p>
               </div>
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse"
-                >
-                  <div className="h-48 bg-gray-300"></div>
-                  <div className="p-4">
-                    <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                    <div className="h-3 bg-gray-300 rounded mb-2"></div>
-                    <div className="h-3 bg-gray-300 rounded mb-4"></div>
-                    <div className="h-8 bg-gray-300 rounded"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {filteredVenues.slice(0, 8).map((venue) => (
-                <VenueCard key={venue._id} venue={venue} />
-              ))}
-            </div>
-          )}
-
-          {filteredVenues.length === 0 && !isLoading && (
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">
-                No venues found matching your criteria.
-              </p>
               <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setFilterSport("");
-                }}
-                className="mt-4 text-blue-600 hover:text-blue-700 font-semibold"
+                onClick={() => navigate("/venues")}
+                className="flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200"
               >
-                Clear filters
+                See all venues
+                <ArrowRight className="ml-2 h-5 w-5" />
               </button>
             </div>
-          )}
-        </div>
-      </section>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-red-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-red-800 text-sm">{error}</p>
+                    <p className="text-red-600 text-xs mt-1">
+                      Showing cached venues instead.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[...Array(4)].map((_, index) => (
+                  <div
+                    key={index}
+                    className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse"
+                  >
+                    <div className="h-48 bg-gray-300"></div>
+                    <div className="p-4">
+                      <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-300 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-300 rounded mb-4"></div>
+                      <div className="h-8 bg-gray-300 rounded"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {filteredVenues.slice(0, 8).map((venue) => (
+                  <VenueCard key={venue._id} venue={venue} />
+                ))}
+              </div>
+            )}
+
+            {filteredVenues.length === 0 && !isLoading && (
+              <div className="text-center py-12">
+                <p className="text-gray-600 text-lg">
+                  No venues found matching your criteria.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setFilterSport("");
+                  }}
+                  className="mt-4 text-blue-600 hover:text-blue-700 font-semibold"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Role-specific welcome sections */}
+      {isAuthenticated && user?.role === "owner" && (
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
+              <h2 className="text-3xl font-bold mb-4">
+                Welcome back, {user.name}!
+              </h2>
+              <p className="text-xl mb-6">
+                Manage your venues and track your bookings
+              </p>
+              <button
+                onClick={() => navigate("/owner/dashboard")}
+                className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isAuthenticated && user?.role === "admin" && (
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-8 text-white text-center">
+              <h2 className="text-3xl font-bold mb-4">
+                Welcome back, Admin {user.name}!
+              </h2>
+              <p className="text-xl mb-6">
+                Monitor the platform and manage all operations
+              </p>
+              <button
+                onClick={() => navigate("/admin/dashboard")}
+                className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Popular Sports Section */}
       <section className="py-16 bg-white">

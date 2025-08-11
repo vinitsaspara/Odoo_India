@@ -13,6 +13,7 @@ const VenueCard = ({ venue }) => {
     name,
     location,
     images = [],
+    coverImage,
     rating = 0,
     totalReviews = 0,
     amenities = [],
@@ -22,6 +23,28 @@ const VenueCard = ({ venue }) => {
     isActive = true,
     operatingHours,
   } = venue;
+
+  // Get the display image (prefer cover image, then first image, then placeholder)
+  const getDisplayImage = () => {
+    // First try cover image
+    if (coverImage && coverImage.url) {
+      return coverImage.url;
+    }
+
+    // Then try first image from images array
+    if (images && images.length > 0) {
+      const firstImage = images[0];
+      // Handle both old format (direct URL) and new format (object with url property)
+      const imageUrl =
+        typeof firstImage === "string" ? firstImage : firstImage.url;
+      if (imageUrl) {
+        return imageUrl;
+      }
+    }
+
+    // Fallback to placeholder
+    return getVenuePlaceholder(name, 400, 250);
+  };
 
   const handleViewDetails = () => {
     navigate(`/venues/${_id}`);
@@ -61,7 +84,7 @@ const VenueCard = ({ venue }) => {
         onClick={handleViewDetails}
       >
         <img
-          src={images[0] || getVenuePlaceholder(name, 400, 250)}
+          src={getDisplayImage()}
           alt={name || "Venue"}
           className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
           onError={(e) => handleImageError(e, `${name || "Venue"} Image`)}

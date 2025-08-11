@@ -262,18 +262,43 @@ const VenueDetails = () => {
     }
   };
 
+  // Helper function to get all images (cover + additional images)
+  const getAllImages = () => {
+    const allImages = [];
+
+    // Add cover image first if it exists
+    if (venue?.coverImage && venue.coverImage.url) {
+      allImages.push(venue.coverImage.url);
+    }
+
+    // Add additional images
+    if (venue?.images && venue.images.length > 0) {
+      venue.images.forEach((image) => {
+        // Handle both old format (direct URL) and new format (object with url property)
+        const imageUrl = typeof image === "string" ? image : image.url;
+        if (imageUrl) {
+          allImages.push(imageUrl);
+        }
+      });
+    }
+
+    return allImages;
+  };
+
   const nextImage = () => {
-    if (venue?.images) {
+    const allImages = getAllImages();
+    if (allImages.length > 0) {
       setCurrentImageIndex((prev) =>
-        prev === venue.images.length - 1 ? 0 : prev + 1
+        prev === allImages.length - 1 ? 0 : prev + 1
       );
     }
   };
 
   const prevImage = () => {
-    if (venue?.images) {
+    const allImages = getAllImages();
+    if (allImages.length > 0) {
       setCurrentImageIndex((prev) =>
-        prev === 0 ? venue.images.length - 1 : prev - 1
+        prev === 0 ? allImages.length - 1 : prev - 1
       );
     }
   };
@@ -344,51 +369,73 @@ const VenueDetails = () => {
             {/* Image Gallery */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="relative h-96">
-                {venue.images && venue.images.length > 0 ? (
-                  <>
-                    <img
-                      src={venue.images[currentImageIndex]}
-                      alt={`${venue.name} - Image ${currentImageIndex + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) =>
-                        handleImageError(e, `${venue.name} Image`)
+                {/* Get images from both coverImage and images array */}
+                {(() => {
+                  const allImages = [];
+
+                  // Add cover image first if it exists
+                  if (venue.coverImage && venue.coverImage.url) {
+                    allImages.push(venue.coverImage.url);
+                  }
+
+                  // Add additional images
+                  if (venue.images && venue.images.length > 0) {
+                    venue.images.forEach((image) => {
+                      // Handle both old format (direct URL) and new format (object with url property)
+                      const imageUrl =
+                        typeof image === "string" ? image : image.url;
+                      if (imageUrl) {
+                        allImages.push(imageUrl);
                       }
-                    />
-                    {venue.images.length > 1 && (
-                      <>
-                        <button
-                          onClick={prevImage}
-                          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
-                        >
-                          <ChevronLeft className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={nextImage}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
-                        >
-                          <ChevronRight className="h-5 w-5" />
-                        </button>
-                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                          {venue.images.map((_, index) => (
-                            <button
-                              key={index}
-                              onClick={() => setCurrentImageIndex(index)}
-                              className={`w-3 h-3 rounded-full ${
-                                index === currentImageIndex
-                                  ? "bg-white"
-                                  : "bg-white bg-opacity-50"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <p className="text-gray-500">No images available</p>
-                  </div>
-                )}
+                    });
+                  }
+
+                  return allImages.length > 0 ? (
+                    <>
+                      <img
+                        src={allImages[currentImageIndex]}
+                        alt={`${venue.name} - Image ${currentImageIndex + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) =>
+                          handleImageError(e, `${venue.name} Image`)
+                        }
+                      />
+                      {allImages.length > 1 && (
+                        <>
+                          <button
+                            onClick={prevImage}
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+                          >
+                            <ChevronLeft className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={nextImage}
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70"
+                          >
+                            <ChevronRight className="h-5 w-5" />
+                          </button>
+                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                            {allImages.map((_, index) => (
+                              <button
+                                key={index}
+                                onClick={() => setCurrentImageIndex(index)}
+                                className={`w-3 h-3 rounded-full ${
+                                  index === currentImageIndex
+                                    ? "bg-white"
+                                    : "bg-white bg-opacity-50"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <p className="text-gray-500">No images available</p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -415,18 +462,25 @@ const VenueDetails = () => {
                 </div>
               </div>
 
-              <p className="text-gray-700 mb-6">{venue.description || "No description available"}</p>
+              <p className="text-gray-700 mb-6">
+                {venue.description || "No description available"}
+              </p>
 
               {/* Contact Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="flex items-center">
                   <Phone className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-gray-700">{venue.phone || venue.contact?.phone || "Phone not available"}</span>
+                  <span className="text-gray-700">
+                    {venue.phone ||
+                      venue.contact?.phone ||
+                      "Phone not available"}
+                  </span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-5 w-5 text-gray-400 mr-3" />
                   <span className="text-gray-700">
-                    {venue.operatingHours?.weekdays || "Operating hours not available"}
+                    {venue.operatingHours?.weekdays ||
+                      "Operating hours not available"}
                   </span>
                 </div>
               </div>
@@ -437,14 +491,16 @@ const VenueDetails = () => {
                   Available Sports
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {(venue.sportsTypes || venue.sportTypes || []).map((sport, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
-                    >
-                      {sport}
-                    </span>
-                  ))}
+                  {(venue.sportsTypes || venue.sportTypes || []).map(
+                    (sport, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                      >
+                        {sport}
+                      </span>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -530,20 +586,22 @@ const VenueDetails = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Price Range:</span>
                   <span className="font-medium">
-                    {venue.priceRange ? 
-                      `₹${venue.priceRange.min} - ₹${venue.priceRange.max}/hr` : 
-                      "Price not available"
-                    }
+                    {venue.priceRange
+                      ? `₹${venue.priceRange.min} - ₹${venue.priceRange.max}/hr`
+                      : "Price not available"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Courts:</span>
-                  <span className="font-medium">{(venue.courts || []).length}</span>
+                  <span className="font-medium">
+                    {(venue.courts || []).length}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Operating Hours:</span>
                   <span className="font-medium">
-                    {venue.operatingHours?.weekdays || "Operating hours not available"}
+                    {venue.operatingHours?.weekdays ||
+                      "Operating hours not available"}
                   </span>
                 </div>
               </div>
@@ -551,9 +609,21 @@ const VenueDetails = () => {
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h4 className="font-medium text-gray-900 mb-2">Policies</h4>
                 <div className="space-y-2 text-xs text-gray-600">
-                  <p>• {venue.policies?.cancellation || venue.cancellationPolicy || "Cancellation policy not available"}</p>
-                  <p>• {venue.policies?.payment || "Payment policy not available"}</p>
-                  <p>• {venue.policies?.equipment || "Equipment policy not available"}</p>
+                  <p>
+                    •{" "}
+                    {venue.policies?.cancellation ||
+                      venue.cancellationPolicy ||
+                      "Cancellation policy not available"}
+                  </p>
+                  <p>
+                    •{" "}
+                    {venue.policies?.payment || "Payment policy not available"}
+                  </p>
+                  <p>
+                    •{" "}
+                    {venue.policies?.equipment ||
+                      "Equipment policy not available"}
+                  </p>
                 </div>
               </div>
             </div>

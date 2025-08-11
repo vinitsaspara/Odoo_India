@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useVenues } from "../hooks/useVenues";
+import { getSportPlaceholder } from "../utils/placeholderImages";
 import api, { handleApiError } from "../utils/api";
 
 const Profile = () => {
@@ -28,18 +29,27 @@ const Profile = () => {
   const { user, updateUser } = useAuth();
   const {
     venues,
+    allVenues,
     isLoading: venuesLoading,
     error: venuesError,
     getOwnerVenues,
+    getAllVenues,
     clearVenueError,
   } = useVenues();
 
-  // State management
-  const [activeTab, setActiveTab] = useState("bookings");
+  // State management - set default tab based on user role
+  const getDefaultTab = () => {
+    if (user?.role === "user") return "bookings";
+    if (user?.role === "owner") return "venues";
+    return "edit"; // Default for admin or any other role
+  };
+
+  const [activeTab, setActiveTab] = useState(getDefaultTab);
   const [bookingsTab, setBookingsTab] = useState("all");
   const [venuesTab, setVenuesTab] = useState("all"); // Added venues tab state
   const [isEditMode, setIsEditMode] = useState(false);
   const [bookings, setBookings] = useState([]);
+  const [adminVenues, setAdminVenues] = useState([]); // State for admin venues
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -63,11 +73,28 @@ const Profile = () => {
     }
   }, [user]);
 
+  // Validate active tab based on user role
   useEffect(() => {
-    if (activeTab === "bookings") {
+    if (user?.role) {
+      // If current tab is not valid for the user's role, switch to appropriate tab
+      if (activeTab === "bookings" && user.role !== "user") {
+        setActiveTab(user.role === "owner" ? "venues" : "edit");
+      } else if (activeTab === "venues" && user.role !== "owner") {
+        setActiveTab(user.role === "user" ? "bookings" : "edit");
+      }
+    }
+  }, [user?.role, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "bookings" && user?.role === "user") {
       fetchBookings();
     } else if (activeTab === "venues" && user?.role === "owner") {
       fetchVenues();
+    } else if (
+      (activeTab === "accepted" || activeTab === "rejected") &&
+      user?.role === "admin"
+    ) {
+      fetchAdminVenues();
     }
   }, [activeTab, bookingsTab, venuesTab]); // Added venuesTab to dependencies
 
@@ -121,6 +148,22 @@ const Profile = () => {
       console.log("Venues fetched successfully via Redux store");
     } catch (error) {
       console.error("Failed to fetch venues via Redux:", error);
+      setError("Failed to load venues. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAdminVenues = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      console.log("Fetching all venues for admin...");
+      await getAllVenues({ page: 1, limit: 100 });
+      console.log("Admin venues fetched successfully via Redux store");
+    } catch (error) {
+      console.error("Failed to fetch admin venues via Redux:", error);
       setError("Failed to load venues. Please try again.");
     } finally {
       setIsLoading(false);
@@ -322,6 +365,27 @@ const Profile = () => {
     }
   };
 
+  // Filter admin venues based on selected tab
+  const getFilteredAdminVenues = () => {
+    if (!allVenues || allVenues.length === 0) return [];
+
+    switch (activeTab) {
+      case "accepted":
+        return allVenues.filter(
+          (venue) =>
+            venue.status === "Active" ||
+            venue.status === "approved" ||
+            venue.status === "Approved"
+        );
+      case "rejected":
+        return allVenues.filter(
+          (venue) => venue.status === "Rejected" || venue.status === "rejected"
+        );
+      default:
+        return allVenues;
+    }
+  };
+
   const getVenueStatusColor = (status) => {
     switch (status) {
       case "Active":
@@ -409,19 +473,22 @@ const Profile = () => {
               {/* Tabs */}
               <div className="border-b">
                 <nav className="flex space-x-8 px-6">
-                  <button
-                    onClick={() => {
-                      setActiveTab("bookings");
-                      setIsEditMode(false);
-                    }}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === "bookings"
-                        ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    My Bookings
-                  </button>
+                  {/* My Bookings tab - only for players/users */}
+                  {user?.role === "user" && (
+                    <button
+                      onClick={() => {
+                        setActiveTab("bookings");
+                        setIsEditMode(false);
+                      }}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        activeTab === "bookings"
+                          ? "border-blue-500 text-blue-600"
+                          : "border-transparent text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      My Bookings
+                    </button>
+                  )}
 
                   {/* Venues tab - only for owners */}
                   {user?.role === "owner" && (
@@ -437,6 +504,40 @@ const Profile = () => {
                       }`}
                     >
                       My Venues
+                    </button>
+                  )}
+
+                  {/* Accepted Venues tab - only for admins */}
+                  {user?.role === "admin" && (
+                    <button
+                      onClick={() => {
+                        setActiveTab("accepted");
+                        setIsEditMode(false);
+                      }}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        activeTab === "accepted"
+                          ? "border-blue-500 text-blue-600"
+                          : "border-transparent text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Accepted Venues
+                    </button>
+                  )}
+
+                  {/* Rejected Venues tab - only for admins */}
+                  {user?.role === "admin" && (
+                    <button
+                      onClick={() => {
+                        setActiveTab("rejected");
+                        setIsEditMode(false);
+                      }}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        activeTab === "rejected"
+                          ? "border-blue-500 text-blue-600"
+                          : "border-transparent text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Rejected Venues
                     </button>
                   )}
 
@@ -458,7 +559,7 @@ const Profile = () => {
 
               {/* Content */}
               <div className="p-6">
-                {activeTab === "bookings" ? (
+                {activeTab === "bookings" && user?.role === "user" ? (
                   <div>
                     {/* Bookings Sub-tabs */}
                     <div className="flex space-x-4 mb-6">
@@ -586,7 +687,7 @@ const Profile = () => {
                       </div>
                     )}
                   </div>
-                ) : activeTab === "venues" ? (
+                ) : activeTab === "venues" && user?.role === "owner" ? (
                   // My Venues Section
                   <div>
                     <div className="flex items-center justify-between mb-6">
@@ -817,6 +918,306 @@ const Profile = () => {
                                           {venue.sportTypes.join(", ")}
                                         </div>
                                       )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : activeTab === "accepted" && user?.role === "admin" ? (
+                  // Admin Accepted Venues Section
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Accepted Venues
+                      </h3>
+                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {getFilteredAdminVenues().length} venues
+                      </span>
+                    </div>
+
+                    {/* Accepted Venues Grid */}
+                    {venuesLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-gray-600 mt-2">Loading venues...</p>
+                      </div>
+                    ) : venuesError ? (
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          Error Loading Venues
+                        </h3>
+                        <p className="text-gray-600 mb-4">{venuesError}</p>
+                        <button
+                          onClick={fetchAdminVenues}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    ) : getFilteredAdminVenues().length === 0 ? (
+                      <div className="text-center py-8">
+                        <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          No Accepted Venues
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          There are no accepted venues yet.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {getFilteredAdminVenues().map((venue) => (
+                          <div
+                            key={venue._id}
+                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-start space-x-4">
+                              <img
+                                src={
+                                  venue.images?.[0]?.url ||
+                                  venue.coverImage?.url ||
+                                  `/api/placeholder/80/80?text=${encodeURIComponent(
+                                    venue.name
+                                  )}`
+                                }
+                                alt={venue.name}
+                                className="w-16 h-16 rounded-lg object-cover"
+                              />
+                              <div className="flex-1">
+                                <h4 className="text-lg font-semibold text-gray-900">
+                                  {venue.name}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-1">
+                                  by {venue.ownerId?.name || "Unknown Owner"}
+                                </p>
+                                <div className="flex items-center text-gray-600 text-sm mt-1">
+                                  <MapPin className="h-4 w-4 mr-1" />
+                                  <span>
+                                    {venue.address ||
+                                      venue.location ||
+                                      "Address not available"}
+                                  </span>
+                                </div>
+                                {venue.description && (
+                                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                    {venue.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center justify-between mt-3">
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Accepted
+                                  </span>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() =>
+                                        navigate(`/venues/${venue._id}`)
+                                      }
+                                      className="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors flex items-center space-x-1"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      <span>View Details</span>
+                                    </button>
+                                  </div>
+                                </div>
+                                {/* Additional venue information */}
+                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                                    {venue.totalCourts && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Courts:
+                                        </span>{" "}
+                                        {venue.totalCourts}
+                                      </div>
+                                    )}
+                                    {venue.sportsTypes &&
+                                      venue.sportsTypes.length > 0 && (
+                                        <div>
+                                          <span className="font-medium">
+                                            Sports:
+                                          </span>{" "}
+                                          {venue.sportsTypes.join(", ")}
+                                        </div>
+                                      )}
+                                    {venue.createdAt && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Added:
+                                        </span>{" "}
+                                        {new Date(
+                                          venue.createdAt
+                                        ).toLocaleDateString()}
+                                      </div>
+                                    )}
+                                    {venue.submittedAt && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Accepted:
+                                        </span>{" "}
+                                        {new Date(
+                                          venue.submittedAt
+                                        ).toLocaleDateString()}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : activeTab === "rejected" && user?.role === "admin" ? (
+                  // Admin Rejected Venues Section
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Rejected Venues
+                      </h3>
+                      <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {getFilteredAdminVenues().length} venues
+                      </span>
+                    </div>
+
+                    {/* Rejected Venues Grid */}
+                    {venuesLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-gray-600 mt-2">Loading venues...</p>
+                      </div>
+                    ) : venuesError ? (
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          Error Loading Venues
+                        </h3>
+                        <p className="text-gray-600 mb-4">{venuesError}</p>
+                        <button
+                          onClick={fetchAdminVenues}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    ) : getFilteredAdminVenues().length === 0 ? (
+                      <div className="text-center py-8">
+                        <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          No Rejected Venues
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          There are no rejected venues yet.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {getFilteredAdminVenues().map((venue) => (
+                          <div
+                            key={venue._id}
+                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-start space-x-4">
+                              <img
+                                src={
+                                  venue.images?.[0]?.url ||
+                                  venue.coverImage?.url ||
+                                  `/api/placeholder/80/80?text=${encodeURIComponent(
+                                    venue.name
+                                  )}`
+                                }
+                                alt={venue.name}
+                                className="w-16 h-16 rounded-lg object-cover"
+                              />
+                              <div className="flex-1">
+                                <h4 className="text-lg font-semibold text-gray-900">
+                                  {venue.name}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-1">
+                                  by {venue.ownerId?.name || "Unknown Owner"}
+                                </p>
+                                <div className="flex items-center text-gray-600 text-sm mt-1">
+                                  <MapPin className="h-4 w-4 mr-1" />
+                                  <span>
+                                    {venue.address ||
+                                      venue.location ||
+                                      "Address not available"}
+                                  </span>
+                                </div>
+                                {venue.description && (
+                                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                    {venue.description}
+                                  </p>
+                                )}
+                                {venue.reason && (
+                                  <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
+                                    <p className="text-sm text-red-700">
+                                      <strong>Rejection Reason:</strong>{" "}
+                                      {venue.reason}
+                                    </p>
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-between mt-3">
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Rejected
+                                  </span>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() =>
+                                        navigate(`/venues/${venue._id}`)
+                                      }
+                                      className="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors flex items-center space-x-1"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      <span>View Details</span>
+                                    </button>
+                                  </div>
+                                </div>
+                                {/* Additional venue information */}
+                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                                    {venue.totalCourts && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Courts:
+                                        </span>{" "}
+                                        {venue.totalCourts}
+                                      </div>
+                                    )}
+                                    {venue.sportsTypes &&
+                                      venue.sportsTypes.length > 0 && (
+                                        <div>
+                                          <span className="font-medium">
+                                            Sports:
+                                          </span>{" "}
+                                          {venue.sportsTypes.join(", ")}
+                                        </div>
+                                      )}
+                                    {venue.createdAt && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Added:
+                                        </span>{" "}
+                                        {new Date(
+                                          venue.createdAt
+                                        ).toLocaleDateString()}
+                                      </div>
+                                    )}
+                                    {venue.submittedAt && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Rejected:
+                                        </span>{" "}
+                                        {new Date(
+                                          venue.submittedAt
+                                        ).toLocaleDateString()}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>

@@ -12,6 +12,7 @@ import WriteReview from "./pages/WriteReview";
 import AddVenue from "./pages/AddVenue";
 import EditVenue from "./pages/EditVenue";
 import Layout from "./components/Layout";
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import "./App.css";
 
 function App() {
@@ -33,7 +34,9 @@ function App() {
           path="/venues"
           element={
             <Layout>
-              <VenuesList />
+              <RoleProtectedRoute allowedRoles={["user"]} redirectTo="/">
+                <VenuesList />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -41,7 +44,12 @@ function App() {
           path="/venues/:id"
           element={
             <Layout>
-              <VenueDetails />
+              <RoleProtectedRoute
+                allowedRoles={["user", "admin"]}
+                redirectTo="/"
+              >
+                <VenueDetails />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -49,7 +57,9 @@ function App() {
           path="/my-bookings"
           element={
             <Layout>
-              <MyBookings />
+              <RoleProtectedRoute allowedRoles={["user"]} redirectTo="/">
+                <MyBookings />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -57,7 +67,9 @@ function App() {
           path="/profile"
           element={
             <Layout>
-              <Profile />
+              <RoleProtectedRoute>
+                <Profile />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -65,7 +77,9 @@ function App() {
           path="/booking/:id"
           element={
             <Layout>
-              <BookingDetails />
+              <RoleProtectedRoute allowedRoles={["user"]} redirectTo="/">
+                <BookingDetails />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -73,7 +87,9 @@ function App() {
           path="/booking/:id/review"
           element={
             <Layout>
-              <WriteReview />
+              <RoleProtectedRoute allowedRoles={["user"]} redirectTo="/">
+                <WriteReview />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -81,7 +97,9 @@ function App() {
           path="/owner/dashboard"
           element={
             <Layout>
-              <OwnerDashboard />
+              <RoleProtectedRoute allowedRoles={["owner"]} redirectTo="/">
+                <OwnerDashboard />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -89,7 +107,12 @@ function App() {
           path="/owner/venues/add"
           element={
             <Layout>
-              <AddVenue />
+              <RoleProtectedRoute
+                allowedRoles={["owner"]}
+                redirectTo="/owner/dashboard"
+              >
+                <AddVenue />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -97,7 +120,12 @@ function App() {
           path="/owner/venues/edit/:id"
           element={
             <Layout>
-              <EditVenue />
+              <RoleProtectedRoute
+                allowedRoles={["owner"]}
+                redirectTo="/owner/dashboard"
+              >
+                <EditVenue />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
@@ -105,7 +133,9 @@ function App() {
           path="/admin/dashboard"
           element={
             <Layout>
-              <AdminDashboard />
+              <RoleProtectedRoute allowedRoles={["admin"]} redirectTo="/">
+                <AdminDashboard />
+              </RoleProtectedRoute>
             </Layout>
           }
         />
