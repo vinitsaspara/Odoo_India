@@ -1,62 +1,146 @@
 import Venue from '../models/Venue.js';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = 'uploads/venues/';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|gif/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'));
+        }
+    }
+});
+
+export const uploadVenueImages = upload.fields([
+    { name: 'coverImage', maxCount: 1 },
+    { name: 'images', maxCount: 10 }
+]);
 
 // @desc    Create a new venue
 // @route   POST /api/venues
 // @access  Private (Owner only)
 export const createVenue = async (req, res) => {
     try {
-        const { name, address, location, sports, amenities, photos } = req.body;
-
+        const venueData = JSON.parse(req.body.venueData);
+        
         // Validate required fields
-        if (!name || !address || !location || !location.lat || !location.lng) {
+        const requiredFields = ['name', 'description', 'address', 'city', 'state', 'pincode', 
+                               'contactName', 'phone', 'email', 'sportTypes', 'totalCourts', 
+                               'courts', 'cancellationPolicy'];
+        
+        for (const field of requiredFields) {
+            if (!venueData[field]) {
+                return res.status(400).json({
+                    success: false,
+                    message: `${field} is required`
+                });
+            }
+        }
+
+        // Validate courts
+        if (!Array.isArray(venueData.courts) || venueData.courts.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide name, address, and location (lat, lng)'
+                message: 'At least one court is required'
             });
         }
 
-        // Validate location coordinates
-        if (typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+        // Validate sport types
+        if (!Array.isArray(venueData.sportTypes) || venueData.sportTypes.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Location coordinates must be valid numbers'
+                message: 'At least one sport type is required'
             });
         }
 
-        if (location.lat < -90 || location.lat > 90) {
-            return res.status(400).json({
-                success: false,
-                message: 'Latitude must be between -90 and 90'
-            });
+        // Process uploaded images
+        const images = [];
+        let coverImage = null;
+
+        if (req.files) {
+            // Process cover image
+            if (req.files.coverImage && req.files.coverImage[0]) {
+                const file = req.files.coverImage[0];
+                coverImage = {
+                    filename: file.filename,
+                    path: file.path,
+                    url: `/uploads/venues/${file.filename}`
+                };
+            }
+
+            // Process additional images
+            if (req.files.images) {
+                req.files.images.forEach(file => {
+                    images.push({
+                        filename: file.filename,
+                        path: file.path,
+                        url: `/uploads/venues/${file.filename}`
+                    });
+                });
+            }
         }
 
-        if (location.lng < -180 || location.lng > 180) {
-            return res.status(400).json({
-                success: false,
-                message: 'Longitude must be between -180 and 180'
-            });
-        }
-
-        // Create venue with owner ID from authenticated user
+        // Create venue
         const venue = await Venue.create({
             ownerId: req.user._id,
-            name: name.trim(),
-            address: address.trim(),
-            location: {
-                lat: location.lat,
-                lng: location.lng
-            },
-            sports: sports || [],
-            amenities: amenities || [],
-            photos: photos || []
+            name: venueData.name.trim(),
+            description: venueData.description.trim(),
+            address: venueData.address.trim(),
+            city: venueData.city.trim(),
+            state: venueData.state.trim(),
+            pincode: venueData.pincode.trim(),
+            latitude: venueData.latitude ? parseFloat(venueData.latitude) : undefined,
+            longitude: venueData.longitude ? parseFloat(venueData.longitude) : undefined,
+            contactName: venueData.contactName.trim(),
+            phone: venueData.phone.trim(),
+            email: venueData.email.trim(),
+            website: venueData.website ? venueData.website.trim() : undefined,
+            sportTypes: venueData.sportTypes,
+            totalCourts: venueData.totalCourts,
+            courts: venueData.courts,
+            amenities: venueData.amenities || [],
+            operatingHours: venueData.operatingHours,
+            cancellationPolicy: venueData.cancellationPolicy.trim(),
+            rules: venueData.rules ? venueData.rules.trim() : undefined,
+            images: images,
+            coverImage: coverImage,
+            status: 'Pending Approval'
         });
+
+        await venue.populate('ownerId', 'name email');
 
         res.status(201).json({
             success: true,
-            message: 'Venue created successfully',
+            message: 'Venue submitted successfully for admin review',
             venue
         });
     } catch (error) {
+        console.error('Create venue error:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -71,10 +155,14 @@ export const getVenues = async (req, res) => {
     try {
         const {
             sport,
-            status,
+            status = 'Active',
             ownerId,
             city,
+            state,
             minRating,
+            maxPrice,
+            minPrice,
+            search,
             page = 1,
             limit = 10,
             sortBy = 'createdAt',
@@ -84,14 +172,16 @@ export const getVenues = async (req, res) => {
         // Build filter object
         const filter = {};
 
-        // Filter by sport
-        if (sport) {
-            filter.sports = { $in: [sport] };
+        // Only show approved venues for public access
+        if (!ownerId) {
+            filter.status = 'Active';
+        } else if (status) {
+            filter.status = status;
         }
 
-        // Filter by status
-        if (status) {
-            filter.status = status;
+        // Filter by sport
+        if (sport && sport !== 'All Sports') {
+            filter.sportTypes = { $in: [sport] };
         }
 
         // Filter by owner
@@ -99,14 +189,34 @@ export const getVenues = async (req, res) => {
             filter.ownerId = ownerId;
         }
 
-        // Filter by city (case-insensitive search in address)
+        // Filter by location
         if (city) {
-            filter.address = { $regex: city, $options: 'i' };
+            filter.city = { $regex: city, $options: 'i' };
+        }
+        if (state) {
+            filter.state = { $regex: state, $options: 'i' };
         }
 
         // Filter by minimum rating
         if (minRating) {
             filter.rating = { $gte: parseFloat(minRating) };
+        }
+
+        // Filter by price range (using minimum court price)
+        if (minPrice || maxPrice) {
+            const priceFilter = {};
+            if (minPrice) priceFilter.$gte = parseFloat(minPrice);
+            if (maxPrice) priceFilter.$lte = parseFloat(maxPrice);
+            filter['courts.pricePerHour'] = priceFilter;
+        }
+
+        // Search in name, description, address
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { address: { $regex: search, $options: 'i' } }
+            ];
         }
 
         // Calculate pagination
@@ -141,6 +251,7 @@ export const getVenues = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Get venues error:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -164,7 +275,7 @@ export const getVenueById = async (req, res) => {
         }
 
         // Find venue by ID and populate owner details
-        const venue = await Venue.findById(id).populate('ownerId', 'name email avatarUrl');
+        const venue = await Venue.findById(id).populate('ownerId', 'name email');
 
         if (!venue) {
             return res.status(404).json({
@@ -178,6 +289,125 @@ export const getVenueById = async (req, res) => {
             venue
         });
     } catch (error) {
+        console.error('Get venue by ID error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Update venue
+// @route   PUT /api/venues/:id
+// @access  Private (Owner only)
+export const updateVenue = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Find venue and verify ownership
+        const venue = await Venue.findById(id);
+        if (!venue) {
+            return res.status(404).json({
+                success: false,
+                message: 'Venue not found'
+            });
+        }
+
+        // Check if user owns this venue
+        if (venue.ownerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. You can only update your own venues'
+            });
+        }
+
+        const venueData = req.body.venueData ? JSON.parse(req.body.venueData) : req.body;
+
+        // Process uploaded images if any
+        const updateData = { ...venueData };
+        
+        if (req.files) {
+            // Process new cover image
+            if (req.files.coverImage && req.files.coverImage[0]) {
+                const file = req.files.coverImage[0];
+                updateData.coverImage = {
+                    filename: file.filename,
+                    path: file.path,
+                    url: `/uploads/venues/${file.filename}`
+                };
+            }
+
+            // Process new additional images
+            if (req.files.images && req.files.images.length > 0) {
+                const newImages = req.files.images.map(file => ({
+                    filename: file.filename,
+                    path: file.path,
+                    url: `/uploads/venues/${file.filename}`
+                }));
+                updateData.images = [...(venue.images || []), ...newImages];
+            }
+        }
+
+        // If venue was rejected and being resubmitted, reset status and admin comments
+        if (venue.status === 'Rejected') {
+            updateData.status = 'Pending Approval';
+            updateData.adminComments = undefined;
+            updateData.rejectedAt = undefined;
+            updateData.submittedAt = new Date();
+        }
+
+        const updatedVenue = await Venue.findByIdAndUpdate(
+            id,
+            updateData,
+            { new: true, runValidators: true }
+        ).populate('ownerId', 'name email');
+
+        res.status(200).json({
+            success: true,
+            message: 'Venue updated successfully',
+            venue: updatedVenue
+        });
+    } catch (error) {
+        console.error('Update venue error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Delete venue
+// @route   DELETE /api/venues/:id
+// @access  Private (Owner only)
+export const deleteVenue = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Find venue and verify ownership
+        const venue = await Venue.findById(id);
+        if (!venue) {
+            return res.status(404).json({
+                success: false,
+                message: 'Venue not found'
+            });
+        }
+
+        // Check if user owns this venue
+        if (venue.ownerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. You can only delete your own venues'
+            });
+        }
+
+        await Venue.findByIdAndDelete(id);
+
+        res.status(200).json({
+            success: true,
+            message: 'Venue deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete venue error:', error);
         res.status(500).json({
             success: false,
             message: error.message

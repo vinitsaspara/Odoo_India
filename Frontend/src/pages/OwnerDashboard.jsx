@@ -19,6 +19,9 @@ import {
   RefreshCw,
   ArrowUpRight,
   ArrowDownRight,
+  CheckCircle,
+  AlertCircle,
+  Wrench,
 } from "lucide-react";
 import api, { handleApiError } from "../utils/api";
 import { getSportPlaceholder } from "../utils/placeholderImages";
@@ -43,7 +46,7 @@ const OwnerDashboard = () => {
     { value: "this_year", label: "This Year" },
   ];
 
-  const statusOptions = ["All", "Active", "Inactive", "Under Maintenance"];
+  const statusOptions = ["All", "Active", "Inactive", "Under Maintenance", "Pending Approval", "Rejected"];
 
   useEffect(() => {
     fetchDashboardData();
@@ -56,196 +59,65 @@ const OwnerDashboard = () => {
     try {
       console.log("Fetching owner dashboard data from API...");
 
-      // Try to fetch real data from API
-      const [kpisResponse, venuesResponse, bookingsResponse] =
-        await Promise.allSettled([
-          api.get(`/owner/kpis?timeRange=${selectedTimeRange}`),
-          api.get("/owner/venues"),
-          api.get("/owner/bookings/recent"),
-        ]);
-
-      // Check if API calls were successful
-      if (
-        kpisResponse.status === "fulfilled" &&
-        venuesResponse.status === "fulfilled" &&
-        bookingsResponse.status === "fulfilled"
-      ) {
-        console.log("Dashboard data fetched successfully from API");
-        setKpis(kpisResponse.value.data);
-        setVenues(venuesResponse.value.data.venues || []);
-        setRecentBookings(bookingsResponse.value.data.bookings || []);
+      // Fetch owner's venues
+      const venuesResponse = await api.get('/owner/venues');
+      
+      if (venuesResponse.data.success) {
+        setVenues(venuesResponse.data.venues || []);
+        console.log('Owner venues fetched:', venuesResponse.data.venues?.length || 0);
+        
+        // Calculate basic stats from venues
+        const ownerVenues = venuesResponse.data.venues || [];
+        const activeVenues = ownerVenues.filter(v => v.status === 'Active').length;
+        const pendingVenues = ownerVenues.filter(v => v.status === 'Pending Approval').length;
+        const rejectedVenues = ownerVenues.filter(v => v.status === 'Rejected').length;
+        
+        setKpis({
+          totalVenues: ownerVenues.length,
+          activeVenues: activeVenues,
+          pendingVenues: pendingVenues,
+          rejectedVenues: rejectedVenues,
+          totalBookings: 0, // Will be updated when booking API is integrated
+          totalEarnings: 0,
+          occupancyRate: 0,
+          totalRevenue: 0,
+          bookingsGrowth: 0,
+          earningsGrowth: 0,
+          occupancyGrowth: 0,
+          revenueGrowth: 0,
+        });
       } else {
-        throw new Error("One or more API calls failed");
+        throw new Error('Failed to fetch venues');
       }
-    } catch (error) {
-      console.error("Failed to fetch dashboard data from API:", error);
-      console.log("Falling back to mock data...");
 
-      // Fallback to mock data
-      const mockData = generateMockDashboardData();
-      setKpis(mockData.kpis);
-      setVenues(mockData.venues);
-      setRecentBookings(mockData.recentBookings);
+      // TODO: Fetch real bookings data when booking API is ready
+      setRecentBookings([]);
+
+    } catch (error) {
+      console.error('Dashboard data fetch failed:', error);
+      setError("Unable to load dashboard data. Please check your connection.");
+      setVenues([]);
+      setKpis({
+        totalVenues: 0,
+        activeVenues: 0,
+        pendingVenues: 0,
+        rejectedVenues: 0,
+        totalBookings: 0,
+        totalEarnings: 0,
+        occupancyRate: 0,
+        totalRevenue: 0,
+        bookingsGrowth: 0,
+        earningsGrowth: 0,
+        occupancyGrowth: 0,
+        revenueGrowth: 0,
+      });
+      setRecentBookings([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateMockDashboardData = () => {
-    // Generate KPIs based on selected time range
-    const getKPIMultiplier = () => {
-      switch (selectedTimeRange) {
-        case "today":
-          return 0.1;
-        case "this_week":
-          return 0.3;
-        case "this_month":
-          return 1;
-        case "last_month":
-          return 0.9;
-        case "this_year":
-          return 12;
-        default:
-          return 1;
-      }
-    };
 
-    const multiplier = getKPIMultiplier();
-    const baseBookings = 156;
-    const baseEarnings = 45600;
-    const baseOccupancy = 72;
-    const baseRevenue = 52800;
-
-    const kpis = {
-      totalBookings: Math.floor(baseBookings * multiplier),
-      totalEarnings: Math.floor(baseEarnings * multiplier),
-      occupancyRate: Math.min(
-        95,
-        Math.floor(baseOccupancy + (Math.random() * 20 - 10))
-      ),
-      totalRevenue: Math.floor(baseRevenue * multiplier),
-      bookingsGrowth: parseFloat((Math.random() * 30 - 5).toFixed(1)),
-      earningsGrowth: parseFloat((Math.random() * 25 - 3).toFixed(1)),
-      occupancyGrowth: parseFloat((Math.random() * 15 - 5).toFixed(1)),
-      revenueGrowth: parseFloat((Math.random() * 28 - 4).toFixed(1)),
-    };
-
-    // Generate owned venues
-    const venues = [
-      {
-        _id: "venue-owner-1",
-        name: "Elite Sports Arena",
-        location: {
-          address: "Satellite, Ahmedabad",
-          city: "Ahmedabad",
-          state: "Gujarat",
-        },
-        images: [getSportPlaceholder("Elite Sports Arena", 400, 250)],
-        totalCourts: 6,
-        activeCourts: 5,
-        status: "Active",
-        rating: 4.5,
-        totalReviews: 128,
-        monthlyEarnings: 18500,
-        monthlyBookings: 89,
-        occupancyRate: 78,
-        sportsTypes: ["Badminton", "Tennis", "Table Tennis"],
-        amenities: ["Parking", "WiFi", "Cafeteria", "Security"],
-        createdAt: "2024-01-15",
-        lastUpdated: "2025-08-10",
-      },
-      {
-        _id: "venue-owner-2",
-        name: "Champions Court Complex",
-        location: {
-          address: "Bopal, Ahmedabad",
-          city: "Ahmedabad",
-          state: "Gujarat",
-        },
-        images: [getSportPlaceholder("Champions Court Complex", 400, 250)],
-        totalCourts: 4,
-        activeCourts: 4,
-        status: "Active",
-        rating: 4.2,
-        totalReviews: 76,
-        monthlyEarnings: 14200,
-        monthlyBookings: 67,
-        occupancyRate: 72,
-        sportsTypes: ["Badminton", "Squash"],
-        amenities: ["Parking", "WiFi", "Changing Room"],
-        createdAt: "2024-03-22",
-        lastUpdated: "2025-08-09",
-      },
-      {
-        _id: "venue-owner-3",
-        name: "Victory Sports Zone",
-        location: {
-          address: "Prahlad Nagar, Ahmedabad",
-          city: "Ahmedabad",
-          state: "Gujarat",
-        },
-        images: [getSportPlaceholder("Victory Sports Zone", 400, 250)],
-        totalCourts: 3,
-        activeCourts: 2,
-        status: "Under Maintenance",
-        rating: 4.0,
-        totalReviews: 45,
-        monthlyEarnings: 8900,
-        monthlyBookings: 34,
-        occupancyRate: 45,
-        sportsTypes: ["Tennis", "Basketball"],
-        amenities: ["Parking", "Security"],
-        createdAt: "2024-06-10",
-        lastUpdated: "2025-08-05",
-      },
-    ];
-
-    // Generate recent bookings
-    const recentBookings = [];
-    const customerNames = [
-      "Rahul Sharma",
-      "Priya Patel",
-      "Amit Kumar",
-      "Sneha Singh",
-      "Rohan Mehta",
-    ];
-    const sports = ["Badminton", "Tennis", "Table Tennis", "Squash"];
-
-    for (let i = 0; i < 10; i++) {
-      const venueIndex = i % venues.length;
-      const randomDate = new Date();
-      randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 7));
-
-      recentBookings.push({
-        _id: `booking-owner-${i + 1}`,
-        bookingId: `BK${String(i + 1001).padStart(4, "0")}`,
-        customer: {
-          name: customerNames[i % customerNames.length],
-          phone:` +91 ${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-        },
-        venue: venues[venueIndex],
-        court: {
-          name: `Court ${(i % 4) + 1} - ${sports[i % sports.length]}`,
-          sport: sports[i % sports.length],
-        },
-        date: randomDate.toISOString().split("T")[0],
-        timeSlot: `${(9 + (i % 12)).toString().padStart(2, "0")}:00 - ${(
-          10 +
-          (i % 12)
-        )
-          .toString()
-          .padStart(2, "0")}:00`,
-        amount: 450 + i * 25,
-        status: i % 8 === 0 ? "Cancelled" : "Confirmed",
-        paymentStatus: "Paid",
-        bookingDate: new Date(
-          randomDate.getTime() - Math.random() * 5 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-      });
-    }
-
-    return { kpis, venues, recentBookings };
-  };
 
   const filteredVenues = venues.filter((venue) => {
     const matchesSearch =
@@ -270,6 +142,11 @@ const OwnerDashboard = () => {
 
   const handleManageCourts = (venueId) => {
     navigate(`/owner/venues/${venueId}/courts`);
+  };
+
+  const handleResubmitVenue = (venueId) => {
+    // Navigate to edit page with resubmit flag
+    navigate(`/owner/venues/edit/${venueId}?resubmit=true`);
   };
 
   const formatCurrency = (amount) => {
@@ -544,7 +421,7 @@ const OwnerDashboard = () => {
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-4">
                             <img
-                              src={venue.images[0]}
+                              src={venue.images?.[0]?.url || venue.coverImage?.url || `/api/placeholder/80/80?text=${encodeURIComponent(venue.name)}`}
                               alt={venue.name}
                               className="w-16 h-16 rounded-lg object-cover"
                             />
@@ -554,13 +431,13 @@ const OwnerDashboard = () => {
                               </h3>
                               <div className="flex items-center text-gray-600 text-sm mt-1">
                                 <MapPin className="h-4 w-4 mr-1" />
-                                <span>{venue.location.address}</span>
+                                <span>{venue.address || 'Address not available'}</span>
                               </div>
                               <div className="flex items-center space-x-4 mt-2">
                                 <div className="flex items-center">
                                   <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
                                   <span className="text-sm text-gray-600">
-                                    {venue.rating} ({venue.totalReviews})
+                                    {venue.rating || 0} ({venue.totalReviews || 0})
                                   </span>
                                 </div>
                                 <span
@@ -569,7 +446,13 @@ const OwnerDashboard = () => {
                                       ? "bg-green-100 text-green-800"
                                       : venue.status === "Inactive"
                                       ? "bg-red-100 text-red-800"
-                                      : "bg-yellow-100 text-yellow-800"
+                                      : venue.status === "Under Maintenance"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : venue.status === "Pending Approval"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : venue.status === "Rejected"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-gray-100 text-gray-800"
                                   }`}
                                 >
                                   {venue.status}
@@ -580,7 +463,7 @@ const OwnerDashboard = () => {
 
                           <div className="text-right">
                             <p className="text-lg font-semibold text-green-600">
-                              {formatCurrency(venue.monthlyEarnings)}
+                              {formatCurrency(venue.monthlyEarnings || 0)}
                             </p>
                             <p className="text-sm text-gray-600">This month</p>
                           </div>
@@ -590,51 +473,96 @@ const OwnerDashboard = () => {
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Courts</p>
                             <p className="font-semibold">
-                              {venue.activeCourts}/{venue.totalCourts}
+                              {venue.totalCourts || 0}/{venue.totalCourts || 0}
                             </p>
                           </div>
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Bookings</p>
                             <p className="font-semibold">
-                              {venue.monthlyBookings}
+                              {venue.monthlyBookings || 0}
                             </p>
                           </div>
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Occupancy</p>
                             <p className="font-semibold">
-                              {venue.occupancyRate}%
+                              {venue.occupancyRate || 0}%
                             </p>
                           </div>
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Sports</p>
                             <p className="font-semibold">
-                              {venue.sportsTypes.length}
+                              {venue.sportTypes?.length || 0}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-end space-x-3 mt-4 pt-4 border-t border-gray-200">
-                          <button
-                            onClick={() => handleViewVenue(venue._id)}
-                            className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm"
-                          >
-                            <Eye className="h-4 w-4" />
-                            <span>View</span>
-                          </button>
-                          <button
-                            onClick={() => handleEditVenue(venue._id)}
-                            className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 text-sm"
-                          >
-                            <Edit className="h-4 w-4" />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleManageCourts(venue._id)}
-                            className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 text-sm"
-                          >
-                            <Settings className="h-4 w-4" />
-                            <span>Courts</span>
-                          </button>
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                          {/* Status-specific information */}
+                          {venue.status === "Pending Approval" && (
+                            <div className="text-sm text-blue-600">
+                              <Clock className="h-4 w-4 inline mr-1" />
+                              Submitted on {venue.submittedAt ? new Date(venue.submittedAt).toLocaleDateString() : 'Recently'}
+                            </div>
+                          )}
+                          {venue.status === "Rejected" && venue.adminComments && (
+                            <div className="text-sm text-red-600 max-w-md">
+                              <AlertCircle className="h-4 w-4 inline mr-1" />
+                              <span className="font-medium">Rejected:</span> {venue.adminComments}
+                            </div>
+                          )}
+                          {venue.status === "Active" && (
+                            <div className="text-sm text-green-600">
+                              <CheckCircle className="h-4 w-4 inline mr-1" />
+                              Live and accepting bookings
+                            </div>
+                          )}
+                          {venue.status === "Under Maintenance" && (
+                            <div className="text-sm text-yellow-600">
+                              <Wrench className="h-4 w-4 inline mr-1" />
+                              Temporarily unavailable
+                            </div>
+                          )}
+
+                          {/* Action buttons */}
+                          <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => handleViewVenue(venue._id)}
+                              className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm"
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span>View</span>
+                            </button>
+                            
+                            {venue.status !== "Pending Approval" && (
+                              <button
+                                onClick={() => handleEditVenue(venue._id)}
+                                className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 text-sm"
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span>Edit</span>
+                              </button>
+                            )}
+                            
+                            {venue.status === "Active" && (
+                              <button
+                                onClick={() => handleManageCourts(venue._id)}
+                                className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 text-sm"
+                              >
+                                <Settings className="h-4 w-4" />
+                                <span>Courts</span>
+                              </button>
+                            )}
+
+                            {venue.status === "Rejected" && (
+                              <button
+                                onClick={() => handleResubmitVenue(venue._id)}
+                                className="flex items-center space-x-2 text-green-600 hover:text-green-700 text-sm"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                <span>Resubmit</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -653,35 +581,47 @@ const OwnerDashboard = () => {
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {recentBookings.slice(0, 8).map((booking) => (
-                  <div
-                    key={booking._id}
-                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">
-                        {booking.customer.name}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {booking.venue.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {booking.court.name}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-600 text-sm">
-                        {formatCurrency(booking.amount)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(booking.date).toLocaleDateString("en-IN", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </p>
-                    </div>
+                {recentBookings.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">
+                      No recent bookings found
+                    </p>
+                    <p className="text-gray-400 text-xs">
+                      Bookings will appear here once customers start booking your venues
+                    </p>
                   </div>
-                ))}
+                ) : (
+                  recentBookings.slice(0, 8).map((booking) => (
+                    <div
+                      key={booking._id}
+                      className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">
+                          {booking.customer.name}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {booking.venue.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {booking.court.name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-600 text-sm">
+                          {formatCurrency(booking.amount)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(booking.date).toLocaleDateString("en-IN", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

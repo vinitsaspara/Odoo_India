@@ -59,222 +59,81 @@ const AdminDashboard = () => {
     try {
       console.log("Fetching admin dashboard data from API...");
 
-      // Try to fetch real data from API
       const [statsResponse, venuesResponse, activityResponse] =
         await Promise.allSettled([
           api.get(`/admin/stats?timeRange=${selectedTimeRange}`),
           api.get("/admin/venues/pending"),
-          api.get("/admin/activity/recent"),
+          api.get("/admin/activity"),
         ]);
 
-      // Check if API calls were successful
-      if (
-        statsResponse.status === "fulfilled" &&
-        venuesResponse.status === "fulfilled" &&
-        activityResponse.status === "fulfilled"
-      ) {
-        console.log("Admin dashboard data fetched successfully from API");
+      // Handle stats
+      if (statsResponse.status === "fulfilled") {
         setStats(statsResponse.value.data);
+      } else {
+        console.error("Failed to fetch stats:", statsResponse.reason);
+        setStats({
+          totalUsers: 0,
+          totalBookings: 0,
+          activeCourts: 0,
+          totalVenues: 0,
+          pendingVenues: 0,
+          usersGrowth: 0,
+          bookingsGrowth: 0,
+          courtsGrowth: 0,
+          venuesGrowth: 0,
+          revenue: 0,
+          revenueGrowth: 0,
+        });
+      }
+
+      // Handle pending venues
+      if (venuesResponse.status === "fulfilled") {
         setPendingVenues(venuesResponse.value.data.venues || []);
+      } else {
+        console.error("Failed to fetch pending venues:", venuesResponse.reason);
+        setPendingVenues([]);
+      }
+
+      // Handle recent activity
+      if (activityResponse.status === "fulfilled") {
         setRecentActivity(activityResponse.value.data.activity || []);
       } else {
-        throw new Error("One or more API calls failed");
+        console.error("Failed to fetch recent activity:", activityResponse.reason);
+        setRecentActivity([]);
       }
-    } catch (error) {
-      console.error("Failed to fetch admin data from API:", error);
-      console.log("Falling back to mock data...");
 
-      // Fallback to mock data
-      const mockData = generateMockAdminData();
-      setStats(mockData.stats);
-      setPendingVenues(mockData.pendingVenues);
-      setRecentActivity(mockData.recentActivity);
+    } catch (error) {
+      console.error("Failed to fetch admin data:", error);
+      setError("Failed to load dashboard data. Please try again.");
+      
+      // Set empty states on error
+      setStats({
+        totalUsers: 0,
+        totalBookings: 0,
+        activeCourts: 0,
+        totalVenues: 0,
+        pendingVenues: 0,
+        usersGrowth: 0,
+        bookingsGrowth: 0,
+        courtsGrowth: 0,
+        venuesGrowth: 0,
+        revenue: 0,
+        revenueGrowth: 0,
+      });
+      setPendingVenues([]);
+      setRecentActivity([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateMockAdminData = () => {
-    // Generate stats based on selected time range
-    const getStatsMultiplier = () => {
-      switch (selectedTimeRange) {
-        case "today":
-          return 0.03;
-        case "this_week":
-          return 0.2;
-        case "this_month":
-          return 1;
-        case "last_month":
-          return 0.9;
-        case "this_year":
-          return 12;
-        default:
-          return 1;
-      }
-    };
 
-    const multiplier = getStatsMultiplier();
-    const baseUsers = 2850;
-    const baseBookings = 1240;
-    const baseCourts = 180;
-    const baseVenues = 45;
-
-    const stats = {
-      totalUsers: Math.floor(
-        baseUsers * (selectedTimeRange === "this_year" ? 1 : multiplier)
-      ),
-      totalBookings: Math.floor(baseBookings * multiplier),
-      activeCourts: Math.floor(
-        baseCourts * (selectedTimeRange === "this_year" ? 1 : 0.8)
-      ),
-      totalVenues: Math.floor(
-        baseVenues * (selectedTimeRange === "this_year" ? 1 : 0.9)
-      ),
-      pendingVenues: 8,
-      usersGrowth: parseFloat((Math.random() * 20 - 2).toFixed(1)),
-      bookingsGrowth: parseFloat((Math.random() * 35 - 5).toFixed(1)),
-      courtsGrowth: parseFloat((Math.random() * 15 - 3).toFixed(1)),
-      venuesGrowth: parseFloat((Math.random() * 25 - 4).toFixed(1)),
-      revenue: Math.floor(850000 * multiplier),
-      revenueGrowth: parseFloat((Math.random() * 30 - 3).toFixed(1)),
-    };
-
-    // Generate pending venues
-    const pendingVenues = [
-      {
-        _id: "pending-1",
-        name: "SportsPlex Elite Center",
-        owner: {
-          name: "Rajesh Kumar",
-          email: "rajesh@sportsplex.com",
-          phone: "+91 98765 43210",
-        },
-        location: {
-          address: "Science City Road, Ahmedabad",
-          city: "Ahmedabad",
-          state: "Gujarat",
-          pincode: "380060",
-        },
-        images: [getSportPlaceholder("SportsPlex Elite Center", 400, 250)],
-        sportsTypes: ["Badminton", "Tennis", "Squash"],
-        totalCourts: 8,
-        amenities: [
-          "Parking",
-          "WiFi",
-          "Cafeteria",
-          "Security",
-          "Changing Room",
-        ],
-        priceRange: { min: 400, max: 800 },
-        submittedDate: "2025-08-08",
-        status: "Pending",
-        documents: ["License", "Insurance", "Safety Certificate"],
-        description:
-          "Premium sports facility with state-of-the-art courts and modern amenities.",
-        operatingHours: "06:00 AM - 11:00 PM",
-        reason: null,
-      },
-      {
-        _id: "pending-2",
-        name: "Champions Sports Arena",
-        owner: {
-          name: "Priya Sharma",
-          email: "priya@championsarena.com",
-          phone: "+91 87654 32109",
-        },
-        location: {
-          address: "SG Highway, Gota",
-          city: "Ahmedabad",
-          state: "Gujarat",
-          pincode: "382481",
-        },
-        images: [getSportPlaceholder("Champions Sports Arena", 400, 250)],
-        sportsTypes: ["Badminton", "Table Tennis"],
-        totalCourts: 6,
-        amenities: ["Parking", "WiFi", "Security"],
-        priceRange: { min: 350, max: 650 },
-        submittedDate: "2025-08-07",
-        status: "Under Review",
-        documents: ["License", "Insurance"],
-        description: "Modern sports facility focusing on racquet sports.",
-        operatingHours: "07:00 AM - 10:00 PM",
-        reason: null,
-      },
-      {
-        _id: "pending-3",
-        name: "Victory Sports Complex",
-        owner: {
-          name: "Amit Patel",
-          email: "amit@victorysports.com",
-          phone: "+91 76543 21098",
-        },
-        location: {
-          address: "Vastrapur Lake Area",
-          city: "Ahmedabad",
-          state: "Gujarat",
-          pincode: "380015",
-        },
-        images: [getSportPlaceholder("Victory Sports Complex", 400, 250)],
-        sportsTypes: ["Tennis", "Basketball", "Cricket"],
-        totalCourts: 10,
-        amenities: ["Parking", "WiFi", "Cafeteria", "Equipment Rental"],
-        priceRange: { min: 500, max: 1000 },
-        submittedDate: "2025-08-06",
-        status: "Needs Revision",
-        documents: ["License"],
-        description: "Large sports complex with outdoor and indoor facilities.",
-        operatingHours: "06:00 AM - 12:00 AM",
-        reason: "Missing safety certificate and insurance documents",
-      },
-    ];
-
-    // Generate recent activity
-    const recentActivity = [
-      {
-        _id: "activity-1",
-        type: "venue_approved",
-        message: 'Venue "Elite Badminton Center" has been approved',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        user: "Admin User",
-      },
-      {
-        _id: "activity-2",
-        type: "venue_submitted",
-        message: 'New venue "SportsPlex Elite Center" submitted for review',
-        timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-        user: "Rajesh Kumar",
-      },
-      {
-        _id: "activity-3",
-        type: "venue_rejected",
-        message: 'Venue "Basic Sports Hub" has been rejected',
-        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-        user: "Admin User",
-      },
-      {
-        _id: "activity-4",
-        type: "user_registered",
-        message: "5 new users registered today",
-        timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-        user: "System",
-      },
-      {
-        _id: "activity-5",
-        type: "venue_submitted",
-        message: 'New venue "Champions Sports Arena" submitted for review',
-        timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-        user: "Priya Sharma",
-      },
-    ];
-
-    return { stats, pendingVenues, recentActivity };
-  };
 
   const filteredVenues = pendingVenues.filter((venue) => {
     const matchesSearch =
       venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venue.owner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venue.location.address.toLowerCase().includes(searchTerm.toLowerCase());
+      (venue.ownerId?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (venue.address || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "All" || venue.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -703,7 +562,7 @@ const AdminDashboard = () => {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-start space-x-4">
                             <img
-                              src={venue.images[0]}
+                              src={venue.images?.[0]?.url || venue.coverImage?.url || getSportPlaceholder(venue.name, 80, 80)}
                               alt={venue.name}
                               className="w-20 h-20 rounded-lg object-cover"
                             />
@@ -712,11 +571,11 @@ const AdminDashboard = () => {
                                 {venue.name}
                               </h3>
                               <p className="text-sm text-gray-600 mb-1">
-                                by {venue.owner.name}
+                                by {venue.ownerId?.name || 'Unknown Owner'}
                               </p>
                               <div className="flex items-center text-gray-600 text-sm">
                                 <MapPin className="h-4 w-4 mr-1" />
-                                <span>{venue.location.address}</span>
+                                <span>{venue.address || 'Address not available'}</span>
                               </div>
                             </div>
                           </div>
@@ -737,21 +596,27 @@ const AdminDashboard = () => {
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Sports</p>
                             <p className="font-semibold">
-                              {venue.sportsTypes.length}
+                              {venue.sportsTypes?.length || 0}
                             </p>
                           </div>
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Price Range</p>
                             <p className="font-semibold">
-                              ₹{venue.priceRange.min}-{venue.priceRange.max}
+                              {(() => {
+                                if (!venue.courts || venue.courts.length === 0) return '₹0-0';
+                                const prices = venue.courts.map(court => court.pricePerHour || 0);
+                                const min = Math.min(...prices);
+                                const max = Math.max(...prices);
+                                return `₹${min}-${max}`;
+                              })()}
                             </p>
                           </div>
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Submitted</p>
                             <p className="font-semibold">
-                              {new Date(venue.submittedDate).toLocaleDateString(
+                              {venue.submittedAt ? new Date(venue.submittedAt).toLocaleDateString(
                                 "en-IN"
-                              )}
+                              ) : 'N/A'}
                             </p>
                           </div>
                         </div>
@@ -767,10 +632,10 @@ const AdminDashboard = () => {
                         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                           <div className="text-sm text-gray-600">
                             <p>
-                              <strong>Owner:</strong> {venue.owner.email}
+                              <strong>Owner:</strong> {venue.ownerId?.email || 'Email not available'}
                             </p>
                             <p>
-                              <strong>Phone:</strong> {venue.owner.phone}
+                              <strong>Phone:</strong> {venue.phone || 'Phone not available'}
                             </p>
                           </div>
 
@@ -824,24 +689,36 @@ const AdminDashboard = () => {
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div
-                    key={activity._id}
-                    className="flex items-start space-x-3"
-                  >
-                    <div className="flex-shrink-0 mt-1">
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900">
-                        {activity.message}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatTimeAgo(activity.timestamp)} • {activity.user}
-                      </p>
-                    </div>
+                {recentActivity.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Activity className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">
+                      No recent activity
+                    </p>
+                    <p className="text-gray-400 text-xs">
+                      Activity will appear here as users and venues interact with the platform
+                    </p>
                   </div>
-                ))}
+                ) : (
+                  recentActivity.map((activity) => (
+                    <div
+                      key={activity._id}
+                      className="flex items-start space-x-3"
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        {getActivityIcon(activity.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-900">
+                          {activity.message}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formatTimeAgo(activity.timestamp)} • {activity.user}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

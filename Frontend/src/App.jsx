@@ -9,6 +9,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import BookingDetails from "./pages/BookingDetails";
 import WriteReview from "./pages/WriteReview";
+import AddVenue from "./pages/AddVenue";
+import EditVenue from "./pages/EditVenue";
 import "./App.css";
 
 function App() {
@@ -28,6 +30,8 @@ function App() {
           <Route path="/booking/:id" element={<BookingDetails />} />
           <Route path="/booking/:id/review" element={<WriteReview />} />
           <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+          <Route path="/owner/venues/add" element={<AddVenue />} />
+          <Route path="/owner/venues/edit/:id" element={<EditVenue />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
         </Routes>
       </div>
