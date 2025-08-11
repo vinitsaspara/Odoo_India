@@ -37,6 +37,7 @@ const Profile = () => {
   // State management
   const [activeTab, setActiveTab] = useState("bookings");
   const [bookingsTab, setBookingsTab] = useState("all");
+  const [venuesTab, setVenuesTab] = useState("all"); // Added venues tab state
   const [isEditMode, setIsEditMode] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,7 +69,7 @@ const Profile = () => {
     } else if (activeTab === "venues" && user?.role === "owner") {
       fetchVenues();
     }
-  }, [activeTab, bookingsTab]);
+  }, [activeTab, bookingsTab, venuesTab]); // Added venuesTab to dependencies
 
   // Clear venue error when component unmounts
   useEffect(() => {
@@ -289,6 +290,55 @@ const Profile = () => {
         return "bg-red-100 text-red-800";
       default:
         return "bg-yellow-100 text-yellow-800";
+    }
+  };
+
+  // Filter venues based on selected tab
+  const getFilteredVenues = () => {
+    if (!venues || venues.length === 0) return [];
+
+    switch (venuesTab) {
+      case "accepted":
+      case "approved":
+        return venues.filter(
+          (venue) =>
+            venue.status === "Active" ||
+            venue.status === "approved" ||
+            venue.status === "Approved"
+        );
+      case "rejected":
+        return venues.filter(
+          (venue) => venue.status === "Rejected" || venue.status === "rejected"
+        );
+      case "pending":
+        return venues.filter(
+          (venue) =>
+            venue.status === "Pending Approval" ||
+            venue.status === "pending" ||
+            venue.status === "Pending"
+        );
+      default:
+        return venues;
+    }
+  };
+
+  const getVenueStatusColor = (status) => {
+    switch (status) {
+      case "Active":
+      case "approved":
+      case "Approved":
+        return "bg-green-100 text-green-800";
+      case "Pending Approval":
+      case "pending":
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "Rejected":
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      case "Inactive":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -551,6 +601,50 @@ const Profile = () => {
                       </button>
                     </div>
 
+                    {/* Venues Sub-tabs */}
+                    <div className="flex space-x-4 mb-6">
+                      <button
+                        onClick={() => setVenuesTab("all")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          venuesTab === "all"
+                            ? "bg-blue-100 text-blue-700"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                      >
+                        All Venues
+                      </button>
+                      <button
+                        onClick={() => setVenuesTab("accepted")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          venuesTab === "accepted"
+                            ? "bg-green-100 text-green-700"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                      >
+                        Accepted
+                      </button>
+                      <button
+                        onClick={() => setVenuesTab("pending")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          venuesTab === "pending"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                      >
+                        Pending
+                      </button>
+                      <button
+                        onClick={() => setVenuesTab("rejected")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          venuesTab === "rejected"
+                            ? "bg-red-100 text-red-700"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                      >
+                        Rejected
+                      </button>
+                    </div>
+
                     {/* Venues Grid */}
                     {venuesLoading ? (
                       <div className="text-center py-8">
@@ -571,26 +665,39 @@ const Profile = () => {
                           Try Again
                         </button>
                       </div>
-                    ) : venues.length === 0 ? (
+                    ) : getFilteredVenues().length === 0 ? (
                       <div className="text-center py-8">
                         <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          No Venues Yet
+                          {venuesTab === "all"
+                            ? "No Venues Yet"
+                            : venuesTab === "accepted"
+                            ? "No Accepted Venues"
+                            : venuesTab === "pending"
+                            ? "No Pending Venues"
+                            : "No Rejected Venues"}
                         </h3>
                         <p className="text-gray-600 mb-4">
-                          You haven't added any venues. Start by adding your
-                          first venue.
+                          {venuesTab === "all"
+                            ? "You haven't added any venues. Start by adding your first venue."
+                            : venuesTab === "accepted"
+                            ? "You don't have any accepted venues yet."
+                            : venuesTab === "pending"
+                            ? "You don't have any venues pending approval."
+                            : "You don't have any rejected venues."}
                         </p>
-                        <button
-                          onClick={() => navigate("/owner/venues/add")}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                          Add Your First Venue
-                        </button>
+                        {venuesTab === "all" && (
+                          <button
+                            onClick={() => navigate("/owner/venues/add")}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                          >
+                            Add Your First Venue
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {venues.map((venue) => (
+                        {getFilteredVenues().map((venue) => (
                           <div
                             key={venue._id}
                             className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
@@ -614,20 +721,21 @@ const Profile = () => {
                                 <div className="flex items-center text-gray-600 text-sm mt-1">
                                   <MapPin className="h-4 w-4 mr-1" />
                                   <span>
-                                    {venue.address || "Address not available"}
+                                    {venue.address ||
+                                      venue.location ||
+                                      "Address not available"}
                                   </span>
                                 </div>
+                                {venue.description && (
+                                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                    {venue.description}
+                                  </p>
+                                )}
                                 <div className="flex items-center justify-between mt-3">
                                   <span
-                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      venue.status === "Active"
-                                        ? "bg-green-100 text-green-800"
-                                        : venue.status === "Pending Approval"
-                                        ? "bg-yellow-100 text-yellow-800"
-                                        : venue.status === "Rejected"
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-gray-100 text-gray-800"
-                                    }`}
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${getVenueStatusColor(
+                                      venue.status
+                                    )}`}
                                   >
                                     {venue.status}
                                   </span>
@@ -641,17 +749,74 @@ const Profile = () => {
                                       <Eye className="h-3 w-3" />
                                       <span>View</span>
                                     </button>
-                                    <button
-                                      onClick={() =>
-                                        navigate(
-                                          `/owner/venues/edit/${venue._id}`
-                                        )
-                                      }
-                                      className="px-3 py-1 text-sm text-gray-600 border border-gray-200 rounded hover:bg-gray-50 transition-colors flex items-center space-x-1"
-                                    >
-                                      <Edit className="h-3 w-3" />
-                                      <span>Edit</span>
-                                    </button>
+                                    {venue.status !== "Pending Approval" &&
+                                      venue.status !== "pending" && (
+                                        <button
+                                          onClick={() =>
+                                            navigate(
+                                              `/owner/venues/edit/${venue._id}`
+                                            )
+                                          }
+                                          className="px-3 py-1 text-sm text-gray-600 border border-gray-200 rounded hover:bg-gray-50 transition-colors flex items-center space-x-1"
+                                        >
+                                          <Edit className="h-3 w-3" />
+                                          <span>Edit</span>
+                                        </button>
+                                      )}
+                                    {(venue.status === "Rejected" ||
+                                      venue.status === "rejected") && (
+                                      <button
+                                        onClick={() =>
+                                          navigate(
+                                            `/owner/venues/edit/${venue._id}?resubmit=true`
+                                          )
+                                        }
+                                        className="px-3 py-1 text-sm text-green-600 border border-green-200 rounded hover:bg-green-50 transition-colors flex items-center space-x-1"
+                                      >
+                                        <RotateCcw className="h-3 w-3" />
+                                        <span>Resubmit</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                {/* Additional venue information */}
+                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                                    {venue.price && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Price:
+                                        </span>{" "}
+                                        ₹{venue.price}/hour
+                                      </div>
+                                    )}
+                                    {venue.capacity && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Capacity:
+                                        </span>{" "}
+                                        {venue.capacity}
+                                      </div>
+                                    )}
+                                    {venue.createdAt && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Created:
+                                        </span>{" "}
+                                        {new Date(
+                                          venue.createdAt
+                                        ).toLocaleDateString()}
+                                      </div>
+                                    )}
+                                    {venue.sportTypes &&
+                                      venue.sportTypes.length > 0 && (
+                                        <div>
+                                          <span className="font-medium">
+                                            Sports:
+                                          </span>{" "}
+                                          {venue.sportTypes.join(", ")}
+                                        </div>
+                                      )}
                                   </div>
                                 </div>
                               </div>
