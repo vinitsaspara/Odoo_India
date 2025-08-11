@@ -55,7 +55,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="bg-white flex">
       {/* Left Side - Image Section */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-slate-100 to-slate-200">
         {/* Image placeholder area */}

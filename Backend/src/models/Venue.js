@@ -172,16 +172,16 @@ const venueSchema = new mongoose.Schema({
         trim: true
     },
 
-    // Images
+    // Images (Cloudinary)
     images: [{
-        filename: String,
-        path: String,
-        url: String
+        publicId: String,
+        url: String,
+        originalName: String
     }],
     coverImage: {
-        filename: String,
-        path: String,
-        url: String
+        publicId: String,
+        url: String,
+        originalName: String
     },
 
     // Status and Reviews

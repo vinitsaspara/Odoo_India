@@ -5,6 +5,7 @@ import {
     getVenueById,
     updateVenue,
     deleteVenue,
+    deleteVenueImage,
     uploadVenueImages
 } from '../controllers/venueController.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
@@ -36,5 +37,10 @@ router.put('/:id', verifyToken, requireRoles(['owner']), uploadVenueImages, upda
 // @desc    Delete venue
 // @access  Private (Owner only)
 router.delete('/:id', verifyToken, requireRoles(['owner']), deleteVenue);
+
+// @route   DELETE /api/venues/:id/images/:imageId
+// @desc    Delete image from venue
+// @access  Private (Owner only)
+router.delete('/:id/images/:imageId', verifyToken, requireRoles(['owner']), deleteVenueImage);
 
 export default router;

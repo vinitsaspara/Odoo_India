@@ -23,20 +23,25 @@ import {
   AlertCircle,
   Wrench,
 } from "lucide-react";
-import api, { handleApiError } from "../utils/api";
-import { getSportPlaceholder } from "../utils/placeholderImages";
+import { useVenues } from "../hooks/useVenues";
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
+  
+  const {
+    venues,
+    isLoading,
+    error,
+    pagination,
+    getOwnerVenues,
+    clearVenueError
+  } = useVenues();
 
-  const [kpis, setKpis] = useState({});
-  const [venues, setVenues] = useState([]);
-  const [recentBookings, setRecentBookings] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  // Local state for UI interactions
   const [selectedTimeRange, setSelectedTimeRange] = useState("this_month");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [recentBookings, setRecentBookings] = useState([]); // Added back for bookings display
 
   const timeRangeOptions = [
     { value: "today", label: "Today" },
@@ -56,86 +61,55 @@ const OwnerDashboard = () => {
   ];
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [selectedTimeRange]);
+    // Fetch venues when component mounts
+    getOwnerVenues({ page: 1, limit: 100 });
+  }, [getOwnerVenues]);
 
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
-    setError("");
+  // Clear error when component unmounts
+  useEffect(() => {
+    return () => {
+      clearVenueError();
+    };
+  }, [clearVenueError]);
 
-    try {
-      console.log("Fetching owner dashboard data from API...");
+  // Calculate KPIs from venues
+  const calculateKpis = () => {
+    const activeVenues = venues.filter(v => v.status === "Active").length;
+    const pendingVenues = venues.filter(v => v.status === "Pending Approval").length;
+    const rejectedVenues = venues.filter(v => v.status === "Rejected").length;
 
-      // Fetch owner's venues
-      const venuesResponse = await api.get("/owner/venues");
+    return {
+      totalVenues: venues.length,
+      activeVenues: activeVenues,
+      pendingVenues: pendingVenues,
+      rejectedVenues: rejectedVenues,
+      totalBookings: 0, // Will be updated when booking API is integrated
+      totalEarnings: 0,
+      occupancyRate: 0,
+      totalRevenue: 0,
+      bookingsGrowth: 0,
+      earningsGrowth: 0,
+      occupancyGrowth: 0,
+      revenueGrowth: 0,
+    };
+  };
 
-      if (venuesResponse.data.success) {
-        setVenues(venuesResponse.data.venues || []);
-        console.log(
-          "Owner venues fetched:",
-          venuesResponse.data.venues?.length || 0
-        );
+  const kpis = calculateKpis();
 
-        // Calculate basic stats from venues
-        const ownerVenues = venuesResponse.data.venues || [];
-        const activeVenues = ownerVenues.filter(
-          (v) => v.status === "Active"
-        ).length;
-        const pendingVenues = ownerVenues.filter(
-          (v) => v.status === "Pending Approval"
-        ).length;
-        const rejectedVenues = ownerVenues.filter(
-          (v) => v.status === "Rejected"
-        ).length;
-
-        setKpis({
-          totalVenues: ownerVenues.length,
-          activeVenues: activeVenues,
-          pendingVenues: pendingVenues,
-          rejectedVenues: rejectedVenues,
-          totalBookings: 0, // Will be updated when booking API is integrated
-          totalEarnings: 0,
-          occupancyRate: 0,
-          totalRevenue: 0,
-          bookingsGrowth: 0,
-          earningsGrowth: 0,
-          occupancyGrowth: 0,
-          revenueGrowth: 0,
-        });
-      } else {
-        throw new Error("Failed to fetch venues");
-      }
-
-      // TODO: Fetch real bookings data when booking API is ready
-      setRecentBookings([]);
-    } catch (error) {
-      console.error("Dashboard data fetch failed:", error);
-      setError("Unable to load dashboard data. Please check your connection.");
-      setVenues([]);
-      setKpis({
-        totalVenues: 0,
-        activeVenues: 0,
-        pendingVenues: 0,
-        rejectedVenues: 0,
-        totalBookings: 0,
-        totalEarnings: 0,
-        occupancyRate: 0,
-        totalRevenue: 0,
-        bookingsGrowth: 0,
-        earningsGrowth: 0,
-        occupancyGrowth: 0,
-        revenueGrowth: 0,
-      });
-      setRecentBookings([]);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRefresh = () => {
+    getOwnerVenues({ page: 1, limit: 100 });
   };
 
   const filteredVenues = venues.filter((venue) => {
     const matchesSearch =
       venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venue.location.address.toLowerCase().includes(searchTerm.toLowerCase());
+      (venue.address || venue.location?.address || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (venue.city || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (venue.description || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "All" || venue.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -194,7 +168,7 @@ const OwnerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-6">
@@ -220,11 +194,12 @@ const OwnerDashboard = () => {
                 ))}
               </select>
               <button
-                onClick={fetchDashboardData}
-                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                <RefreshCw className="h-4 w-4" />
-                <span>Refresh</span>
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
               </button>
             </div>
           </div>
@@ -236,6 +211,12 @@ const OwnerDashboard = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <p className="text-red-600">{error}</p>
+            <button
+              onClick={handleRefresh}
+              className="mt-2 text-sm bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200"
+            >
+              Try Again
+            </button>
           </div>
         )}
 

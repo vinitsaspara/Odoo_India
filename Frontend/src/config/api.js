@@ -22,6 +22,23 @@ export const API_ENDPOINTS = {
         DETAILS: (id) => `/venues/${id}`,
         SEARCH: '/venues/search',
         BOOK: (id) => `/venues/${id}/book`,
+        DELETE: '/venues',
+    },
+    // Owner endpoints
+    OWNER: {
+        VENUES: '/owner/venues',
+        ADD_VENUE: '/owner/venues',
+        UPDATE_VENUE: (id) => `/owner/venues/${id}`,
+        DELETE_VENUE: (id) => `/owner/venues/${id}`,
+    },
+    // Admin endpoints
+    ADMIN: {
+        VENUES: '/admin/venues',
+        UPDATE_VENUE_STATUS: '/admin/venues',
+        APPROVE_VENUE: (id) => `/admin/venues/${id}/approve`,
+        REJECT_VENUE: (id) => `/admin/venues/${id}/reject`,
+        STATS: '/admin/stats',
+        ACTIVITY: '/admin/activity',
     },
     // Sports endpoints
     SPORTS: {

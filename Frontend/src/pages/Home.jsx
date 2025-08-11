@@ -10,7 +10,6 @@ import {
   Users,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import Header from "../components/Header";
 import VenueCard from "../components/VenueCard";
 import SportCard from "../components/SportCard";
 import api, { handleApiError } from "../utils/api.js";
@@ -156,9 +155,7 @@ const Home = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-
+    <div className="bg-gray-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

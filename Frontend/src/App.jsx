@@ -11,6 +11,7 @@ import BookingDetails from "./pages/BookingDetails";
 import WriteReview from "./pages/WriteReview";
 import AddVenue from "./pages/AddVenue";
 import EditVenue from "./pages/EditVenue";
+import Layout from "./components/Layout";
 import "./App.css";
 
 function App() {
@@ -18,23 +19,115 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-background">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/venues" element={<VenuesList />} />
-          <Route path="/venues/:id" element={<VenueDetails />} />
-          <Route path="/my-bookings" element={<MyBookings />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/booking/:id" element={<BookingDetails />} />
-          <Route path="/booking/:id/review" element={<WriteReview />} />
-          <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-          <Route path="/owner/venues/add" element={<AddVenue />} />
-          <Route path="/owner/venues/edit/:id" element={<EditVenue />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        </Routes>
-      </div>
+      <Routes>
+        {/* Pages with navbar */}
+        <Route
+          path="/"
+          element={
+            <Layout>
+              <Home />
+            </Layout>
+          }
+        />
+        <Route
+          path="/venues"
+          element={
+            <Layout>
+              <VenuesList />
+            </Layout>
+          }
+        />
+        <Route
+          path="/venues/:id"
+          element={
+            <Layout>
+              <VenueDetails />
+            </Layout>
+          }
+        />
+        <Route
+          path="/my-bookings"
+          element={
+            <Layout>
+              <MyBookings />
+            </Layout>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <Layout>
+              <Profile />
+            </Layout>
+          }
+        />
+        <Route
+          path="/booking/:id"
+          element={
+            <Layout>
+              <BookingDetails />
+            </Layout>
+          }
+        />
+        <Route
+          path="/booking/:id/review"
+          element={
+            <Layout>
+              <WriteReview />
+            </Layout>
+          }
+        />
+        <Route
+          path="/owner/dashboard"
+          element={
+            <Layout>
+              <OwnerDashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/owner/venues/add"
+          element={
+            <Layout>
+              <AddVenue />
+            </Layout>
+          }
+        />
+        <Route
+          path="/owner/venues/edit/:id"
+          element={
+            <Layout>
+              <EditVenue />
+            </Layout>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <Layout>
+              <AdminDashboard />
+            </Layout>
+          }
+        />
+
+        {/* Auth pages without navbar */}
+        <Route
+          path="/login"
+          element={
+            <Layout showHeader={false} className="bg-white">
+              <Login />
+            </Layout>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <Layout showHeader={false} className="bg-white">
+              <Signup />
+            </Layout>
+          }
+        />
+      </Routes>
     </Router>
   );
 }

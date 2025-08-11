@@ -22,21 +22,29 @@ import {
   Shield,
   Settings,
 } from "lucide-react";
-import api, { handleApiError } from "../utils/api";
+import { useVenues } from "../hooks/useVenues";
 import { getSportPlaceholder } from "../utils/placeholderImages";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
 
-  const [stats, setStats] = useState({});
-  const [pendingVenues, setPendingVenues] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const {
+    allVenues,
+    pendingVenues,
+    isLoading,
+    error,
+    pagination,
+    getAllVenues,
+    updateStatus,
+    clearVenueError
+  } = useVenues();
+
+  // Local state for UI interactions
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedTimeRange, setSelectedTimeRange] = useState("this_month");
   const [processingVenue, setProcessingVenue] = useState(null);
+  const [recentActivity, setRecentActivity] = useState([]);
 
   const timeRangeOptions = [
     { value: "today", label: "Today" },
@@ -46,90 +54,56 @@ const AdminDashboard = () => {
     { value: "this_year", label: "This Year" },
   ];
 
-  const statusOptions = ["All", "Pending", "Under Review", "Needs Revision"];
+  const statusOptions = [
+    "All",
+    "Pending Approval",
+    "Active",
+    "Inactive",
+    "Under Maintenance",
+    "Rejected",
+    "Under Review",
+    "Needs Revision",
+  ];
 
   useEffect(() => {
-    fetchAdminData();
-  }, [selectedTimeRange]);
+    // Fetch all venues when component mounts
+    getAllVenues({ page: 1, limit: 100 });
+  }, [getAllVenues]);
 
-  const fetchAdminData = async () => {
-    setIsLoading(true);
-    setError("");
+  // Clear error when component unmounts
+  useEffect(() => {
+    return () => {
+      clearVenueError();
+    };
+  }, [clearVenueError]);
 
-    try {
-      console.log("Fetching admin dashboard data from API...");
-
-      const [statsResponse, venuesResponse, activityResponse] =
-        await Promise.allSettled([
-          api.get(`/admin/stats?timeRange=${selectedTimeRange}`),
-          api.get("/admin/venues/pending"),
-          api.get("/admin/activity"),
-        ]);
-
-      // Handle stats
-      if (statsResponse.status === "fulfilled") {
-        setStats(statsResponse.value.data);
-      } else {
-        console.error("Failed to fetch stats:", statsResponse.reason);
-        setStats({
-          totalUsers: 0,
-          totalBookings: 0,
-          activeCourts: 0,
-          totalVenues: 0,
-          pendingVenues: 0,
-          usersGrowth: 0,
-          bookingsGrowth: 0,
-          courtsGrowth: 0,
-          venuesGrowth: 0,
-          revenue: 0,
-          revenueGrowth: 0,
-        });
-      }
-
-      // Handle pending venues
-      if (venuesResponse.status === "fulfilled") {
-        setPendingVenues(venuesResponse.value.data.venues || []);
-      } else {
-        console.error("Failed to fetch pending venues:", venuesResponse.reason);
-        setPendingVenues([]);
-      }
-
-      // Handle recent activity
-      if (activityResponse.status === "fulfilled") {
-        setRecentActivity(activityResponse.value.data.activity || []);
-      } else {
-        console.error(
-          "Failed to fetch recent activity:",
-          activityResponse.reason
-        );
-        setRecentActivity([]);
-      }
-    } catch (error) {
-      console.error("Failed to fetch admin data:", error);
-      setError("Failed to load dashboard data. Please try again.");
-
-      // Set empty states on error
-      setStats({
-        totalUsers: 0,
-        totalBookings: 0,
-        activeCourts: 0,
-        totalVenues: 0,
-        pendingVenues: 0,
-        usersGrowth: 0,
-        bookingsGrowth: 0,
-        courtsGrowth: 0,
-        venuesGrowth: 0,
-        revenue: 0,
-        revenueGrowth: 0,
-      });
-      setPendingVenues([]);
-      setRecentActivity([]);
-    } finally {
-      setIsLoading(false);
-    }
+  // Calculate stats from venues
+  const calculateStats = () => {
+    const activeVenues = allVenues.filter(v => v.status === "Active").length;
+    const pending = pendingVenues.length;
+    
+    return {
+      totalUsers: 0, // Will be updated when user API is integrated
+      totalBookings: 0, // Will be updated when booking API is integrated
+      activeCourts: 0, // Will be updated when court API is integrated
+      totalVenues: allVenues.length,
+      pendingVenues: pending,
+      usersGrowth: 0,
+      bookingsGrowth: 0,
+      courtsGrowth: 0,
+      venuesGrowth: 0,
+      revenue: 0,
+      revenueGrowth: 0,
+    };
   };
 
-  const filteredVenues = pendingVenues.filter((venue) => {
+  const stats = calculateStats();
+
+  const handleRefresh = () => {
+    getAllVenues({ page: 1, limit: 100 });
+  };
+
+  const filteredVenues = allVenues.filter((venue) => {
     const matchesSearch =
       venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (venue.ownerId?.name || "")
@@ -141,49 +115,73 @@ const AdminDashboard = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleApproveVenue = async (venueId) => {
+  const handleActivateVenue = async (venueId) => {
     setProcessingVenue(venueId);
     try {
-      console.log("Approving venue via API:", venueId);
-
-      // Try API call first
-      try {
-        await api.patch(`/admin/venues/${venueId}/approve`);
-        console.log("Venue approved successfully via API");
-      } catch (apiError) {
-        console.error("API approval failed:", apiError);
-        console.log("Proceeding with local state update...");
-      }
-
-      // Update local state (works for both API success and fallback)
-      setPendingVenues((prev) => prev.filter((venue) => venue._id !== venueId));
-
-      // Update stats
-      setStats((prev) => ({
-        ...prev,
-        totalVenues: prev.totalVenues + 1,
-        pendingVenues: prev.pendingVenues - 1,
-      }));
-
+      await updateStatus(venueId, "Active");
+      
       // Add to recent activity
-      const approvedVenue = pendingVenues.find((v) => v._id === venueId);
-      setRecentActivity((prev) => [
+      const venue = allVenues.find(v => v._id === venueId);
+      setRecentActivity(prev => [
         {
           _id: `activity-${Date.now()}`,
           type: "venue_approved",
-          message: `Venue "${
-            approvedVenue?.name || "Unknown"
-          }" has been approved`,
+          message: `Venue "${venue?.name || "Unknown"}" has been activated`,
           timestamp: new Date().toISOString(),
           user: "Admin User",
         },
         ...prev.slice(0, 4),
       ]);
+    } catch (error) {
+      console.error("Error activating venue:", error);
+    } finally {
+      setProcessingVenue(null);
+    }
+  };
 
-      alert("Venue approved successfully!");
+  const handleDeactivateVenue = async (venueId) => {
+    setProcessingVenue(venueId);
+    try {
+      await updateStatus(venueId, "Inactive");
+      
+      // Add to recent activity
+      const venue = allVenues.find(v => v._id === venueId);
+      setRecentActivity(prev => [
+        {
+          _id: `activity-${Date.now()}`,
+          type: "venue_rejected",
+          message: `Venue "${venue?.name || "Unknown"}" has been deactivated`,
+          timestamp: new Date().toISOString(),
+          user: "Admin User",
+        },
+        ...prev.slice(0, 4),
+      ]);
+    } catch (error) {
+      console.error("Error deactivating venue:", error);
+    } finally {
+      setProcessingVenue(null);
+    }
+  };
+
+  const handleApproveVenue = async (venueId) => {
+    setProcessingVenue(venueId);
+    try {
+      await updateStatus(venueId, "Active");
+      
+      // Add to recent activity
+      const venue = pendingVenues.find(v => v._id === venueId);
+      setRecentActivity(prev => [
+        {
+          _id: `activity-${Date.now()}`,
+          type: "venue_approved",
+          message: `Venue "${venue?.name || "Unknown"}" has been approved`,
+          timestamp: new Date().toISOString(),
+          user: "Admin User",
+        },
+        ...prev.slice(0, 4),
+      ]);
     } catch (error) {
       console.error("Error approving venue:", error);
-      alert("Failed to approve venue. Please try again.");
     } finally {
       setProcessingVenue(null);
     }
@@ -192,45 +190,22 @@ const AdminDashboard = () => {
   const handleRejectVenue = async (venueId, reason) => {
     setProcessingVenue(venueId);
     try {
-      console.log("Rejecting venue via API:", venueId, "Reason:", reason);
-
-      // Try API call first
-      try {
-        await api.patch(`/admin/venues/${venueId}/reject`, { reason });
-        console.log("Venue rejected successfully via API");
-      } catch (apiError) {
-        console.error("API rejection failed:", apiError);
-        console.log("Proceeding with local state update...");
-      }
-
-      // Update local state (works for both API success and fallback)
-      setPendingVenues((prev) => prev.filter((venue) => venue._id !== venueId));
-
-      // Update stats
-      setStats((prev) => ({
-        ...prev,
-        pendingVenues: prev.pendingVenues - 1,
-      }));
-
+      await updateStatus(venueId, "Rejected");
+      
       // Add to recent activity
-      const rejectedVenue = pendingVenues.find((v) => v._id === venueId);
-      setRecentActivity((prev) => [
+      const venue = pendingVenues.find(v => v._id === venueId);
+      setRecentActivity(prev => [
         {
           _id: `activity-${Date.now()}`,
           type: "venue_rejected",
-          message: `Venue "${
-            rejectedVenue?.name || "Unknown"
-          }" has been rejected`,
+          message: `Venue "${venue?.name || "Unknown"}" has been rejected`,
           timestamp: new Date().toISOString(),
           user: "Admin User",
         },
         ...prev.slice(0, 4),
       ]);
-
-      alert("Venue rejected successfully!");
     } catch (error) {
       console.error("Error rejecting venue:", error);
-      alert("Failed to reject venue. Please try again.");
     } finally {
       setProcessingVenue(null);
     }
@@ -310,7 +285,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-6">
@@ -339,11 +314,12 @@ const AdminDashboard = () => {
                 ))}
               </select>
               <button
-                onClick={fetchAdminData}
-                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                <RefreshCw className="h-4 w-4" />
-                <span>Refresh</span>
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
               </button>
             </div>
           </div>
@@ -355,6 +331,12 @@ const AdminDashboard = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <p className="text-red-600">{error}</p>
+            <button
+              onClick={handleRefresh}
+              className="mt-2 text-sm bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200"
+            >
+              Try Again
+            </button>
           </div>
         )}
 
@@ -499,16 +481,16 @@ const AdminDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Pending Venues */}
+          {/* All Venues Management */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-gray-900">
-                    Pending Venue Approvals
+                    All Venues Management
                   </h2>
-                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                    {filteredVenues.length} pending
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {filteredVenues.length} venues
                   </span>
                 </div>
 
@@ -663,28 +645,66 @@ const AdminDashboard = () => {
                               <span>View Details</span>
                             </button>
 
-                            <button
-                              onClick={() =>
-                                handleRejectVenue(
-                                  venue._id,
-                                  "Admin review required"
-                                )
-                              }
-                              disabled={processingVenue === venue._id}
-                              className="flex items-center space-x-2 bg-red-100 text-red-700 px-3 py-1 rounded-lg hover:bg-red-200 text-sm disabled:opacity-50"
-                            >
-                              <XCircle className="h-4 w-4" />
-                              <span>Reject</span>
-                            </button>
+                            {/* Dynamic action buttons based on venue status */}
+                            {venue.status === "Pending Approval" && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleRejectVenue(
+                                      venue._id,
+                                      "Admin review required"
+                                    )
+                                  }
+                                  disabled={processingVenue === venue._id}
+                                  className="flex items-center space-x-2 bg-red-100 text-red-700 px-3 py-1 rounded-lg hover:bg-red-200 text-sm disabled:opacity-50"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  <span>Reject</span>
+                                </button>
 
-                            <button
-                              onClick={() => handleApproveVenue(venue._id)}
-                              disabled={processingVenue === venue._id}
-                              className="flex items-center space-x-2 bg-green-100 text-green-700 px-3 py-1 rounded-lg hover:bg-green-200 text-sm disabled:opacity-50"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              <span>Approve</span>
-                            </button>
+                                <button
+                                  onClick={() => handleApproveVenue(venue._id)}
+                                  disabled={processingVenue === venue._id}
+                                  className="flex items-center space-x-2 bg-green-100 text-green-700 px-3 py-1 rounded-lg hover:bg-green-200 text-sm disabled:opacity-50"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span>Approve</span>
+                                </button>
+                              </>
+                            )}
+
+                            {venue.status === "Active" && (
+                              <button
+                                onClick={() => handleDeactivateVenue(venue._id)}
+                                disabled={processingVenue === venue._id}
+                                className="flex items-center space-x-2 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-lg hover:bg-yellow-200 text-sm disabled:opacity-50"
+                              >
+                                <AlertTriangle className="h-4 w-4" />
+                                <span>Deactivate</span>
+                              </button>
+                            )}
+
+                            {venue.status === "Inactive" && (
+                              <button
+                                onClick={() => handleActivateVenue(venue._id)}
+                                disabled={processingVenue === venue._id}
+                                className="flex items-center space-x-2 bg-green-100 text-green-700 px-3 py-1 rounded-lg hover:bg-green-200 text-sm disabled:opacity-50"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Activate</span>
+                              </button>
+                            )}
+
+                            {venue.status === "Rejected" && (
+                              <button
+                                onClick={() => handleApproveVenue(venue._id)}
+                                disabled={processingVenue === venue._id}
+                                className="flex items-center space-x-2 bg-green-100 text-green-700 px-3 py-1 rounded-lg hover:bg-green-200 text-sm disabled:opacity-50"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Approve</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

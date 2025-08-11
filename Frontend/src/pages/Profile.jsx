@@ -17,13 +17,22 @@ import {
   AlertCircle,
   Save,
   RotateCcw,
+  Building2,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { useVenues } from "../hooks/useVenues";
 import api, { handleApiError } from "../utils/api";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const {
+    venues,
+    isLoading: venuesLoading,
+    error: venuesError,
+    getOwnerVenues,
+    clearVenueError
+  } = useVenues();
 
   // State management
   const [activeTab, setActiveTab] = useState("bookings");
@@ -56,8 +65,17 @@ const Profile = () => {
   useEffect(() => {
     if (activeTab === "bookings") {
       fetchBookings();
+    } else if (activeTab === "venues" && user?.role === "owner") {
+      fetchVenues();
     }
   }, [activeTab, bookingsTab]);
+
+  // Clear venue error when component unmounts
+  useEffect(() => {
+    return () => {
+      clearVenueError();
+    };
+  }, [clearVenueError]);
 
   const fetchBookings = async () => {
     setIsLoading(true);
@@ -87,6 +105,22 @@ const Profile = () => {
         return true;
       });
       setBookings(filteredBookings);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchVenues = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      console.log("Fetching owner venues using Redux...");
+      await getOwnerVenues({ page: 1, limit: 100 });
+      console.log("Venues fetched successfully via Redux store");
+    } catch (error) {
+      console.error("Failed to fetch venues via Redux:", error);
+      setError("Failed to load venues. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -338,6 +372,24 @@ const Profile = () => {
                   >
                     My Bookings
                   </button>
+
+                  {/* Venues tab - only for owners */}
+                  {user?.role === "owner" && (
+                    <button
+                      onClick={() => {
+                        setActiveTab("venues");
+                        setIsEditMode(false);
+                      }}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        activeTab === "venues"
+                          ? "border-blue-500 text-blue-600"
+                          : "border-transparent text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      My Venues
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setActiveTab("edit");
@@ -478,6 +530,131 @@ const Profile = () => {
                                 <Eye className="h-3 w-3" />
                                 <span>View Details</span>
                               </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : activeTab === "venues" ? (
+                  // My Venues Section
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        My Venues
+                      </h3>
+                      <button
+                        onClick={() => navigate("/owner/venues/add")}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Add New Venue
+                      </button>
+                    </div>
+
+                    {/* Venues Grid */}
+                    {venuesLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-gray-600 mt-2">Loading venues...</p>
+                      </div>
+                    ) : venuesError ? (
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          Error Loading Venues
+                        </h3>
+                        <p className="text-gray-600 mb-4">{venuesError}</p>
+                        <button
+                          onClick={fetchVenues}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    ) : venues.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          No Venues Yet
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          You haven't added any venues. Start by adding your
+                          first venue.
+                        </p>
+                        <button
+                          onClick={() => navigate("/owner/venues/add")}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        >
+                          Add Your First Venue
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {venues.map((venue) => (
+                          <div
+                            key={venue._id}
+                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-start space-x-4">
+                              <img
+                                src={
+                                  venue.images?.[0]?.url ||
+                                  venue.coverImage?.url ||
+                                  `/api/placeholder/80/80?text=${encodeURIComponent(
+                                    venue.name
+                                  )}`
+                                }
+                                alt={venue.name}
+                                className="w-16 h-16 rounded-lg object-cover"
+                              />
+                              <div className="flex-1">
+                                <h4 className="text-lg font-semibold text-gray-900">
+                                  {venue.name}
+                                </h4>
+                                <div className="flex items-center text-gray-600 text-sm mt-1">
+                                  <MapPin className="h-4 w-4 mr-1" />
+                                  <span>
+                                    {venue.address || "Address not available"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between mt-3">
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      venue.status === "Active"
+                                        ? "bg-green-100 text-green-800"
+                                        : venue.status === "Pending Approval"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : venue.status === "Rejected"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }`}
+                                  >
+                                    {venue.status}
+                                  </span>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() =>
+                                        navigate(`/venues/${venue._id}`)
+                                      }
+                                      className="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors flex items-center space-x-1"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                      <span>View</span>
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        navigate(
+                                          `/owner/venues/edit/${venue._id}`
+                                        )
+                                      }
+                                      className="px-3 py-1 text-sm text-gray-600 border border-gray-200 rounded hover:bg-gray-50 transition-colors flex items-center space-x-1"
+                                    >
+                                      <Edit className="h-3 w-3" />
+                                      <span>Edit</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         ))}
