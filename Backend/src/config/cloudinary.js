@@ -1,87 +1,109 @@
-import { v2 as cloudinary } from 'cloudinary';
-import multer from 'multer';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import dotenv from 'dotenv';
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-dotenv.config();
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Configure Cloudinary
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Create uploads directory structure
+const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+const venuesDir = path.join(uploadsDir, 'venues');
+const usersDir = path.join(uploadsDir, 'users');
 
-// Configure multer storage with Cloudinary
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'odoo_india/venues', // Folder name in Cloudinary
-        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-        transformation: [
-            { width: 1200, height: 800, crop: 'limit', quality: 'auto' }
-        ],
-        public_id: (req, file) => {
-            // Generate unique public ID
-            const timestamp = Date.now();
-            const random = Math.round(Math.random() * 1E9);
-            return `${file.fieldname}-${timestamp}-${random}`;
-        }
-    },
-});
-
-// Create multer upload middleware
-export const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB limit
-    },
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|webp/;
-        const extname = allowedTypes.test(file.originalname.toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-
-        if (mimetype && extname) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Only image files (JPEG, PNG, GIF, WebP) are allowed'));
-        }
+// Ensure directories exist
+[uploadsDir, venuesDir, usersDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+        console.log(`Created directory: ${dir}`);
     }
 });
 
-// Upload configuration for venue images
-export const uploadVenueImages = upload.fields([
-    { name: 'coverImage', maxCount: 1 },
-    { name: 'images', maxCount: 10 }
+// Storage configuration for venue images
+const venueStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, venuesDir);
+    },
+    filename: (req, file, cb) => {
+        // Generate unique filename: timestamp-randomnumber-originalname
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const extension = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, extension);
+        cb(null, `venue-${uniqueSuffix}-${baseName}${extension}`);
+    }
+});
+
+// Storage configuration for user avatars
+const userStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, usersDir);
+    },
+    filename: (req, file, cb) => {
+        // Generate unique filename: timestamp-randomnumber-originalname
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const extension = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, extension);
+        cb(null, `user-${uniqueSuffix}-${baseName}${extension}`);
+    }
+});
+
+// File filter for images
+const imageFilter = (req, file, cb) => {
+    // Check file type
+    if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+    } else {
+        cb(new Error("Only image files are allowed"), false);
+    }
+};
+
+// Multer configuration for venue images
+export const uploadVenueImages = multer({
+    storage: venueStorage,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit per file
+    },
+    fileFilter: imageFilter
+}).fields([
+    { name: "coverImage", maxCount: 1 },
+    { name: "images", maxCount: 10 },
 ]);
 
-// Helper function to delete image from Cloudinary
-export const deleteImage = async (publicId) => {
-    try {
-        const result = await cloudinary.uploader.destroy(publicId);
-        return result;
-    } catch (error) {
-        console.error('Error deleting image from Cloudinary:', error);
-        throw error;
-    }
+// Multer configuration for user avatar
+export const uploadUserAvatar = multer({
+    storage: userStorage,
+    limits: {
+        fileSize: 2 * 1024 * 1024, // 2MB limit for profile pictures
+    },
+    fileFilter: imageFilter
+}).single("avatar");
+
+// Helper function to generate file URL
+export const generateFileUrl = (filename, type = 'venues') => {
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    return `${baseUrl}/uploads/${type}/${filename}`;
 };
 
-// Helper function to extract public ID from Cloudinary URL
-export const extractPublicId = (cloudinaryUrl) => {
+// Helper function to delete file
+export const deleteFile = (filePath) => {
     try {
-        const parts = cloudinaryUrl.split('/');
-        const uploadIndex = parts.indexOf('upload');
-        if (uploadIndex !== -1 && parts.length > uploadIndex + 2) {
-            // Get everything after 'upload/v{version}/'
-            const pathAfterVersion = parts.slice(uploadIndex + 2).join('/');
-            // Remove file extension
-            return pathAfterVersion.replace(/\.[^/.]+$/, '');
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(`File deleted: ${filePath}`);
+            return true;
         }
-        return null;
+        return false;
     } catch (error) {
-        console.error('Error extracting public ID:', error);
-        return null;
+        console.error('Error deleting file:', error);
+        return false;
     }
 };
 
-export default cloudinary;
+// Helper function to get file path
+export const getFilePath = (filename, type = 'venues') => {
+    return path.join(uploadsDir, type, filename);
+};
+
+console.log("Local file upload system configured successfully");
+console.log(`Uploads directory: ${uploadsDir}`);

@@ -22,6 +22,8 @@ const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
     fs.mkdirSync(path.join(uploadsDir, 'venues'), { recursive: true });
+    fs.mkdirSync(path.join(uploadsDir, 'users'), { recursive: true });
+    console.log('Created uploads directories: venues, users');
 }
 
 // Middleware

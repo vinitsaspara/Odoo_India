@@ -1,5 +1,5 @@
 import Venue from '../models/Venue.js';
-import { uploadVenueImages, deleteImage, extractPublicId } from '../config/cloudinary.js';
+import { uploadVenueImages, generateFileUrl, deleteFile, getFilePath } from '../config/cloudinary.js';
 
 // Export the upload middleware from cloudinary config
 export { uploadVenueImages } from '../config/cloudinary.js';
@@ -41,28 +41,32 @@ export const createVenue = async (req, res) => {
             });
         }
 
-        // Process uploaded images from Cloudinary
+        // Process uploaded images from local storage
         const images = [];
         let coverImage = null;
 
         if (req.files) {
+            console.log('Processing uploaded files...');
+
             // Process cover image
             if (req.files.coverImage && req.files.coverImage[0]) {
                 const file = req.files.coverImage[0];
+                console.log('Cover image uploaded:', file.filename);
                 coverImage = {
-                    publicId: file.public_id,
-                    url: file.secure_url,
-                    originalName: file.original_filename
+                    filename: file.filename,
+                    url: generateFileUrl(file.filename, 'venues'),
+                    originalName: file.originalname
                 };
             }
 
             // Process additional images
             if (req.files.images) {
                 req.files.images.forEach(file => {
+                    console.log('Additional image uploaded:', file.filename);
                     images.push({
-                        publicId: file.public_id,
-                        url: file.secure_url,
-                        originalName: file.original_filename
+                        filename: file.filename,
+                        url: generateFileUrl(file.filename, 'venues'),
+                        originalName: file.originalname
                     });
                 });
             }
@@ -96,6 +100,13 @@ export const createVenue = async (req, res) => {
         });
 
         await venue.populate('ownerId', 'name email');
+
+        console.log('Venue created successfully:', {
+            venueId: venue._id,
+            name: venue.name,
+            coverImage: coverImage?.url,
+            imagesCount: images.length
+        });
 
         res.status(201).json({
             success: true,
@@ -287,36 +298,40 @@ export const updateVenue = async (req, res) => {
 
         const venueData = req.body.venueData ? JSON.parse(req.body.venueData) : req.body;
 
-        // Process uploaded images if any (Cloudinary)
+        // Process uploaded images if any
         const updateData = { ...venueData };
 
         if (req.files) {
+            console.log('Processing updated files...');
+
             // Process new cover image
             if (req.files.coverImage && req.files.coverImage[0]) {
-                // Delete old cover image from Cloudinary if exists
-                if (venue.coverImage && venue.coverImage.publicId) {
-                    try {
-                        await deleteImage(venue.coverImage.publicId);
-                    } catch (error) {
-                        console.error('Error deleting old cover image:', error);
-                    }
+                // Delete old cover image from local storage if exists
+                if (venue.coverImage && venue.coverImage.filename) {
+                    const oldCoverPath = getFilePath(venue.coverImage.filename, 'venues');
+                    deleteFile(oldCoverPath);
                 }
 
                 const file = req.files.coverImage[0];
+                console.log('New cover image uploaded:', file.filename);
                 updateData.coverImage = {
-                    publicId: file.public_id,
-                    url: file.secure_url,
-                    originalName: file.original_filename
+                    filename: file.filename,
+                    url: generateFileUrl(file.filename, 'venues'),
+                    originalName: file.originalname
                 };
             }
 
             // Process new additional images
             if (req.files.images && req.files.images.length > 0) {
-                const newImages = req.files.images.map(file => ({
-                    publicId: file.public_id,
-                    url: file.secure_url,
-                    originalName: file.original_filename
-                }));
+                const newImages = req.files.images.map(file => {
+                    console.log('New additional image uploaded:', file.filename);
+                    return {
+                        filename: file.filename,
+                        url: generateFileUrl(file.filename, 'venues'),
+                        originalName: file.originalname
+                    };
+                });
+                // Append new images to existing ones
                 updateData.images = [...(venue.images || []), ...newImages];
             }
         }
@@ -334,6 +349,13 @@ export const updateVenue = async (req, res) => {
             updateData,
             { new: true, runValidators: true }
         ).populate('ownerId', 'name email');
+
+        console.log('Venue updated successfully:', {
+            venueId: updatedVenue._id,
+            name: updatedVenue.name,
+            coverImage: updatedVenue.coverImage?.url,
+            imagesCount: updatedVenue.images?.length || 0
+        });
 
         res.status(200).json({
             success: true,
@@ -373,27 +395,34 @@ export const deleteVenue = async (req, res) => {
             });
         }
 
-        // Delete images from Cloudinary
+        // Delete images from local storage
         try {
             // Delete cover image
-            if (venue.coverImage && venue.coverImage.publicId) {
-                await deleteImage(venue.coverImage.publicId);
+            if (venue.coverImage && venue.coverImage.filename) {
+                const coverPath = getFilePath(venue.coverImage.filename, 'venues');
+                deleteFile(coverPath);
             }
 
             // Delete additional images
             if (venue.images && venue.images.length > 0) {
                 for (const image of venue.images) {
-                    if (image.publicId) {
-                        await deleteImage(image.publicId);
+                    if (image.filename) {
+                        const imagePath = getFilePath(image.filename, 'venues');
+                        deleteFile(imagePath);
                     }
                 }
             }
         } catch (error) {
-            console.error('Error deleting images from Cloudinary:', error);
+            console.error('Error deleting images from local storage:', error);
             // Continue with venue deletion even if image deletion fails
         }
 
         await Venue.findByIdAndDelete(id);
+
+        console.log('Venue deleted successfully:', {
+            venueId: id,
+            name: venue.name
+        });
 
         res.status(200).json({
             success: true,
@@ -437,16 +466,16 @@ export const deleteVenueImage = async (req, res) => {
         let updateData = {};
 
         if (imageType === 'cover') {
-            if (venue.coverImage && venue.coverImage.publicId === imageId) {
+            if (venue.coverImage && venue.coverImage.filename === imageId) {
                 imageToDelete = venue.coverImage;
                 updateData.coverImage = undefined;
             }
         } else {
             // Find the image in gallery
-            const imageIndex = venue.images.findIndex(img => img.publicId === imageId);
+            const imageIndex = venue.images.findIndex(img => img.filename === imageId);
             if (imageIndex !== -1) {
                 imageToDelete = venue.images[imageIndex];
-                updateData.images = venue.images.filter(img => img.publicId !== imageId);
+                updateData.images = venue.images.filter(img => img.filename !== imageId);
             }
         }
 
@@ -457,14 +486,18 @@ export const deleteVenueImage = async (req, res) => {
             });
         }
 
-        // Delete image from Cloudinary
+        // Delete image from local storage
         try {
-            await deleteImage(imageToDelete.publicId);
+            const imagePath = getFilePath(imageToDelete.filename, 'venues');
+            const deleted = deleteFile(imagePath);
+            if (!deleted) {
+                console.warn('File not found on disk:', imagePath);
+            }
         } catch (error) {
-            console.error('Error deleting image from Cloudinary:', error);
+            console.error('Error deleting image from local storage:', error);
             return res.status(500).json({
                 success: false,
-                message: 'Failed to delete image from cloud storage'
+                message: 'Failed to delete image from storage'
             });
         }
 
@@ -474,6 +507,12 @@ export const deleteVenueImage = async (req, res) => {
             updateData,
             { new: true, runValidators: true }
         ).populate('ownerId', 'name email');
+
+        console.log('Image deleted successfully:', {
+            venueId: id,
+            imageType: imageType,
+            filename: imageToDelete.filename
+        });
 
         res.status(200).json({
             success: true,

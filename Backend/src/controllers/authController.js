@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { generateFileUrl } from '../config/cloudinary.js';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -63,16 +64,31 @@ export const registerUser = async (req, res) => {
             });
         }
 
+        // Handle avatar upload if provided
+        let avatarUrl = null;
+        if (req.file) {
+            console.log('Avatar uploaded:', req.file.filename);
+            avatarUrl = generateFileUrl(req.file.filename, 'users');
+        }
+
         // Create user (password will be hashed by pre-save middleware)
         const user = await User.create({
             name: name.trim(),
             email: email.toLowerCase().trim(),
             passwordHash: password,
-            role: role || 'user'
+            role: role || 'user',
+            avatarUrl: avatarUrl
         });
 
         // Generate token
         const token = generateToken(user._id);
+
+        console.log('User registered successfully:', {
+            userId: user._id,
+            name: user.name,
+            email: user.email,
+            hasAvatar: !!avatarUrl
+        });
 
         res.status(201).json({
             success: true,
@@ -88,6 +104,7 @@ export const registerUser = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('User registration error:', error);
         res.status(500).json({
             success: false,
             message: error.message
