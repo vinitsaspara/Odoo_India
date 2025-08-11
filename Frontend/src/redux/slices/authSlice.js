@@ -39,12 +39,13 @@ export const loginUser = createAsyncThunk(
 
 export const registerUser = createAsyncThunk(
     'auth/register',
-    async ({ name, email, password }, { rejectWithValue }) => {
+    async ({ name, email, password, role }, { rejectWithValue }) => {
         try {
             const response = await axios.post(`${API_URL}/auth/register`, {
                 name,
                 email,
                 password,
+                role,
             });
 
             // Set token in axios defaults

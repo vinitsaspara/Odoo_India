@@ -1,7 +1,7 @@
 import express from 'express';
-import { 
-    addCourtToVenue, 
-    getCourtAvailability 
+import {
+    addCourtToVenue,
+    getCourtAvailability
 } from '../controllers/courtController.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
 import { requireRoles } from '../middlewares/roleMiddleware.js';

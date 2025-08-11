@@ -1,8 +1,8 @@
 import express from 'express';
-import { 
-    createBooking, 
-    getUserBookings, 
-    getOwnerBookings 
+import {
+    createBooking,
+    getUserBookings,
+    getOwnerBookings
 } from '../controllers/bookingController.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
 import { requireRoles } from '../middlewares/roleMiddleware.js';

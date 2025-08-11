@@ -1,8 +1,8 @@
 import express from 'express';
-import { 
-    createVenue, 
-    getVenues, 
-    getVenueById 
+import {
+    createVenue,
+    getVenues,
+    getVenueById
 } from '../controllers/venueController.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
 import { requireRoles } from '../middlewares/roleMiddleware.js';
