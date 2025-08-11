@@ -1,6 +1,23 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Camera, Upload } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Eye,
+  EyeOff,
+  Camera,
+  Upload,
+  Star,
+  Users,
+  Building,
+  Rocket,
+  Mail,
+  Lock,
+  User,
+  Shield,
+  Heart,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 
 const Signup = () => {
@@ -17,100 +34,35 @@ const Signup = () => {
   const [profileImagePreview, setProfileImagePreview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [validationErrors, setValidationErrors] = useState({});
+  const [currentStep, setCurrentStep] = useState(0);
 
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  // Email validation function
+  // Multi-step form configuration
+  const steps = [
+    { title: "Personal Info", icon: User },
+    { title: "Account Setup", icon: Shield },
+    { title: "Profile Picture", icon: Camera },
+  ];
+
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  // Password strength validation function
   const validatePassword = (password) => {
-    const errors = [];
-
-    if (password.length < 8) {
-      errors.push("Must be at least 8 characters long");
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      errors.push("Must contain at least one uppercase letter");
-    }
-
-    if (!/[a-z]/.test(password)) {
-      errors.push("Must contain at least one lowercase letter");
-    }
-
-    if (!/\d/.test(password)) {
-      errors.push("Must contain at least one number");
-    }
-
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      errors.push("Must contain at least one special character");
-    }
-
-    return errors;
-  };
-
-  // Real-time validation on input change
-  const validateField = (name, value) => {
-    const newErrors = { ...validationErrors };
-
-    switch (name) {
-      case "email":
-        if (value && !validateEmail(value)) {
-          newErrors.email = "Please enter a valid email address";
-        } else {
-          delete newErrors.email;
-        }
-        break;
-
-      case "password":
-        const passwordErrors = validatePassword(value);
-        if (passwordErrors.length > 0) {
-          newErrors.password = passwordErrors;
-        } else {
-          delete newErrors.password;
-        }
-        break;
-
-      case "confirmPassword":
-        if (value && value !== formData.password) {
-          newErrors.confirmPassword = "Passwords do not match";
-        } else {
-          delete newErrors.confirmPassword;
-        }
-        break;
-
-      case "name":
-        if (value && value.trim().length < 2) {
-          newErrors.name = "Name must be at least 2 characters long";
-        } else {
-          delete newErrors.name;
-        }
-        break;
-
-      default:
-        break;
-    }
-
-    setValidationErrors(newErrors);
+    return (
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /\d/.test(password)
+    );
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Real-time validation
-    validateField(name, value);
-
-    // Clear general error when user starts typing
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (error) setError("");
   };
 
@@ -126,52 +78,44 @@ const Signup = () => {
     }
   };
 
+  const nextStep = () => {
+    if (currentStep === 0) {
+      if (!formData.name || !formData.role) {
+        setError("Please fill in all fields");
+        return;
+      }
+    } else if (currentStep === 1) {
+      if (!formData.email || !formData.password || !formData.confirmPassword) {
+        setError("Please fill in all fields");
+        return;
+      }
+      if (!validateEmail(formData.email)) {
+        setError("Please enter a valid email");
+        return;
+      }
+      if (!validatePassword(formData.password)) {
+        setError(
+          "Password must be at least 8 characters with uppercase, lowercase, and number"
+        );
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+    }
+    setError("");
+    setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-
-    // Comprehensive validation before submission
-    const errors = {};
-
-    // Name validation
-    if (!formData.name.trim()) {
-      errors.name = "Name is required";
-    } else if (formData.name.trim().length < 2) {
-      errors.name = "Name must be at least 2 characters long";
-    }
-
-    // Email validation
-    if (!formData.email) {
-      errors.email = "Email is required";
-    } else if (!validateEmail(formData.email)) {
-      errors.email = "Please enter a valid email address";
-    }
-
-    // Password validation
-    if (!formData.password) {
-      errors.password = ["Password is required"];
-    } else {
-      const passwordErrors = validatePassword(formData.password);
-      if (passwordErrors.length > 0) {
-        errors.password = passwordErrors;
-      }
-    }
-
-    // Confirm password validation
-    if (!formData.confirmPassword) {
-      errors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = "Passwords do not match";
-    }
-
-    // If there are validation errors, show them and stop submission
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      setError("Please fix the errors below before submitting");
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const registrationData = {
@@ -181,14 +125,9 @@ const Signup = () => {
         role: formData.role,
       };
 
-      // Add avatar if provided
-      if (profileImage) {
-        registrationData.avatar = profileImage;
-      }
+      if (profileImage) registrationData.avatar = profileImage;
 
       const response = await register(registrationData);
-
-      // Redirect based on role
       const userRole = response.user.role;
 
       switch (userRole) {
@@ -208,330 +147,414 @@ const Signup = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.5, staggerChildren: 0.1 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: 20 },
+    visible: { opacity: 1, x: 0 },
+  };
+
+  const roleOptions = [
+    {
+      value: "user",
+      title: "Player",
+      description: "Book and play",
+      icon: Users,
+      color: "from-blue-500 to-cyan-500",
+      bgColor: "bg-blue-50",
+    },
+    {
+      value: "owner",
+      title: "Owner",
+      description: "Manage venues",
+      icon: Building,
+      color: "from-purple-500 to-pink-500",
+      bgColor: "bg-purple-50",
+    },
+  ];
+
   return (
-    <div className="bg-white flex">
-      {/* Left Side - Image Section */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-slate-100 to-slate-200">
-        {/* Image placeholder area */}
-        <div className="w-full h-full flex items-center justify-center relative overflow-hidden">
-          {/* Background pattern */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-purple-50"></div>
-
-          {/* Decorative elements */}
-          <div className="absolute top-0 left-0 w-32 h-32 bg-blue-200 rounded-full -translate-x-16 -translate-y-16 opacity-60"></div>
-          <div className="absolute bottom-0 right-0 w-40 h-40 bg-purple-200 rounded-full translate-x-20 translate-y-20 opacity-60"></div>
-
-          {/* Main content */}
-          <div className="relative z-10 text-center">
-            <div className="w-64 h-64 mx-auto bg-gradient-to-br from-green-400 to-blue-500 rounded-3xl shadow-xl flex items-center justify-center mb-8">
-              <span className="text-6xl text-white font-bold">QC</span>
-            </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              Join QuickCourt
-            </h2>
-            <p className="text-gray-600 text-lg">
-              Start your sports booking journey today
-            </p>
-          </div>
-
-          {/* Badges */}
-          <div className="absolute top-6 left-6">
-            <span className="inline-flex items-center px-4 py-2 rounded-full bg-blue-900 text-white text-sm font-medium shadow-lg">
-              Witty Narwhal
-            </span>
-          </div>
-          <div className="absolute bottom-6 left-6">
-            <span className="inline-flex items-center px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-medium shadow-lg">
-              Beautiful Dolphin
-            </span>
-          </div>
-        </div>
-
-        {/* Vertical divider */}
-        <div className="absolute right-0 top-0 w-px h-full bg-gray-200"></div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-cyan-100 flex items-center justify-center p-4">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            rotate: 360,
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            rotate: -360,
+            scale: [1.1, 1, 1.1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-cyan-200/30 to-pink-200/30 rounded-full blur-3xl"
+        />
       </div>
 
-      {/* Right Side - Signup Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile badges - shown only on mobile */}
-          <div className="lg:hidden mb-8 flex justify-between">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-900 text-white text-xs font-medium">
-              Witty Narwhal
-            </span>
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-pink-500 text-white text-xs font-medium">
-              Beautiful Dolphin
-            </span>
-          </div>
+      {/* Main Card */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20"
+      >
+        {/* Header */}
+        <div className="text-center mb-6">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-4 shadow-lg"
+          >
+            <Rocket className="w-8 h-8 text-white" />
+          </motion.div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            Join QuickCourt
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Create your account in 3 simple steps
+          </p>
+        </div>
 
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-wide">
-              QUICKCOURT
-            </h1>
-            <h2 className="text-lg font-semibold text-gray-600 tracking-wider">
-              SIGN UP
-            </h2>
-          </div>
-
-          {/* Profile Picture Upload */}
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="w-24 h-24 bg-gray-100 rounded-full shadow-lg flex items-center justify-center overflow-hidden border-4 border-white">
-                {profileImagePreview ? (
-                  <img
-                    src={profileImagePreview}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Camera className="h-8 w-8 text-gray-400" />
-                )}
-              </div>
-              <label
-                htmlFor="profile-upload"
-                className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition-colors duration-200"
+        {/* Progress Steps */}
+        <div className="flex items-center justify-between mb-8">
+          {steps.map((step, index) => (
+            <div key={index} className="flex items-center">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0.5 }}
+                animate={{
+                  scale: currentStep >= index ? 1 : 0.8,
+                  opacity: currentStep >= index ? 1 : 0.5,
+                }}
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                  currentStep >= index
+                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 border-indigo-500 text-white"
+                    : "bg-white border-gray-300 text-gray-400"
+                }`}
               >
-                <Upload className="h-3 w-3" />
-              </label>
-              <input
-                type="file"
-                id="profile-upload"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
+                <step.icon className="w-5 h-5" />
+              </motion.div>
+              {index < steps.length - 1 && (
+                <div
+                  className={`w-12 h-0.5 mx-2 transition-colors duration-300 ${
+                    currentStep > index ? "bg-indigo-500" : "bg-gray-300"
+                  }`}
+                />
+              )}
             </div>
-          </div>
+          ))}
+        </div>
 
-          {/* Error Message */}
+        {/* Error Message */}
+        <AnimatePresence>
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm text-center">{error}</p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2"
+            >
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <p className="text-red-600 text-sm">{error}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Form Steps */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Step 1: Personal Info */}
+            {currentStep === 0 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    I want to join as
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {roleOptions.map((role) => (
+                      <motion.label
+                        key={role.value}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`relative flex flex-col items-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                          formData.role === role.value
+                            ? `border-indigo-500 ${role.bgColor}`
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="role"
+                          value={role.value}
+                          checked={formData.role === role.value}
+                          onChange={handleChange}
+                          className="hidden"
+                        />
+                        <div
+                          className={`p-2 rounded-lg mb-2 ${
+                            formData.role === role.value
+                              ? `bg-gradient-to-r ${role.color} text-white`
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          <role.icon className="w-5 h-5" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {role.title}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {role.description}
+                        </span>
+                      </motion.label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Account Setup */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                      placeholder="Create a password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                      placeholder="Confirm your password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Profile Picture */}
+            {currentStep === 2 && (
+              <div className="text-center space-y-6">
+                <div>
+                  <p className="text-gray-600 mb-6">
+                    Add a profile picture (optional)
+                  </p>
+                  <div className="flex justify-center">
+                    <div className="relative">
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        className="w-32 h-32 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full shadow-lg flex items-center justify-center overflow-hidden border-4 border-white cursor-pointer"
+                      >
+                        {profileImagePreview ? (
+                          <img
+                            src={profileImagePreview}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Camera className="h-12 w-12 text-gray-400" />
+                        )}
+                      </motion.div>
+                      <label
+                        htmlFor="profile-upload"
+                        className="absolute bottom-2 right-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-3 rounded-full shadow-lg cursor-pointer hover:from-indigo-600 hover:to-purple-700 transition-all duration-200"
+                      >
+                        <Upload className="h-4 w-4" />
+                      </label>
+                      <input
+                        type="file"
+                        id="profile-upload"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-xl border border-green-200">
+                  <div className="flex items-center justify-center space-x-2 text-green-700">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="font-medium">Almost there!</span>
+                  </div>
+                  <p className="text-green-600 text-sm mt-1">
+                    Click "Create Account" to complete your registration
+                  </p>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Action Buttons */}
+        <div className="flex space-x-3 mt-8">
+          {currentStep > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={prevStep}
+              className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all duration-200"
+            >
+              Back
+            </motion.button>
           )}
 
-          {/* Signup Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Role Selection */}
-            <div>
-              <label
-                htmlFor="role"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Sign up as
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 bg-white hover:border-gray-400"
-              >
-                <option value="user">Player</option>
-                <option value="owner">Facility Owner</option>
-              </select>
-            </div>
-
-            {/* Full Name Field */}
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Full Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                  validationErrors.name
-                    ? "border-red-300 bg-red-50"
-                    : "border-gray-300"
-                }`}
-                placeholder="Enter your full name"
-              />
-              {validationErrors.name && (
-                <p className="mt-1 text-sm text-red-600">
-                  {validationErrors.name}
-                </p>
-              )}
-            </div>
-
-            {/* Email Field */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                  validationErrors.email
-                    ? "border-red-300 bg-red-50"
-                    : "border-gray-300"
-                }`}
-                placeholder="Enter your email"
-              />
-              {validationErrors.email && (
-                <p className="mt-1 text-sm text-red-600">
-                  {validationErrors.email}
-                </p>
-              )}
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className={`w-full px-4 py-3 pr-12 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                    validationErrors.password
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300"
-                  }`}
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-              {validationErrors.password && (
-                <div className="mt-1">
-                  <p className="text-sm text-red-600 mb-1">
-                    Password requirements:
-                  </p>
-                  <ul className="text-xs text-red-600 list-disc list-inside space-y-1">
-                    {validationErrors.password.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Confirm Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className={`w-full px-4 py-3 pr-12 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
-                    validationErrors.confirmPassword
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300"
-                  }`}
-                  placeholder="Confirm your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-              {validationErrors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
-                  {validationErrors.confirmPassword}
-                </p>
-              )}
-            </div>
-
-            {/* Sign Up Button */}
-            <button
-              type="submit"
+          {currentStep < steps.length - 1 ? (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={nextStep}
+              className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 px-4 rounded-xl font-medium shadow-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200"
+            >
+              Next
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+              className="flex-1 bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 px-4 rounded-xl font-medium shadow-lg hover:from-green-600 hover:to-blue-700 focus:ring-4 focus:ring-green-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Creating Account...
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                  />
+                  Creating...
                 </span>
               ) : (
-                "Sign Up"
+                <span className="flex items-center justify-center">
+                  <Heart className="w-5 h-5 mr-2" />
+                  Create Account
+                </span>
               )}
-            </button>
-          </form>
-
-          {/* Footer Links */}
-          <div className="mt-8 text-center">
-            <p className="text-gray-600">
-              Already have an account?{" "}
-              <button
-                onClick={() => navigate("/login")}
-                className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
-              >
-                Log in
-              </button>
-            </p>
-          </div>
+            </motion.button>
+          )}
         </div>
-      </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-gray-600 text-sm">
+            Already have an account?{" "}
+            <motion.button
+              onClick={() => navigate("/login")}
+              whileHover={{ scale: 1.05 }}
+              className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors duration-200"
+            >
+              Sign in
+            </motion.button>
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 };

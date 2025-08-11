@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Zap,
+  Shield,
+  Users,
+  Trophy,
+  ArrowRight,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 
 const Login = () => {
@@ -30,10 +43,16 @@ const Login = () => {
     setIsLoading(true);
     setError("");
 
+    // Basic validation
+    if (!formData.email || !formData.password) {
+      setError("Please fill in all fields");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await login(formData);
 
-      // Store JWT in localStorage (already handled by useAuth hook)
       // Redirect based on role
       const userRole = response.user.role;
 
@@ -54,190 +73,248 @@ const Login = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.5, staggerChildren: 0.1 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
+  const features = [
+    {
+      icon: Users,
+      title: "10K+ Players",
+      description: "Active community",
+      color: "from-blue-500 to-cyan-500",
+    },
+    {
+      icon: Shield,
+      title: "Secure Booking",
+      description: "Protected payments",
+      color: "from-green-500 to-emerald-500",
+    },
+    {
+      icon: Trophy,
+      title: "Premium Venues",
+      description: "Best facilities",
+      color: "from-yellow-500 to-orange-500",
+    },
+  ];
+
   return (
-    <div className="bg-white flex">
-      {/* Left Side - Image Section */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-slate-100 to-slate-200">
-        {/* Image placeholder area */}
-        <div className="w-full h-full flex items-center justify-center relative overflow-hidden">
-          {/* Background pattern */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-purple-50"></div>
-
-          {/* Decorative elements */}
-          <div className="absolute top-0 left-0 w-32 h-32 bg-blue-200 rounded-full -translate-x-16 -translate-y-16 opacity-60"></div>
-          <div className="absolute bottom-0 right-0 w-40 h-40 bg-purple-200 rounded-full translate-x-20 translate-y-20 opacity-60"></div>
-
-          {/* Main content */}
-          <div className="relative z-10 text-center">
-            <div className="w-64 h-64 mx-auto bg-gradient-to-br from-blue-400 to-purple-500 rounded-3xl shadow-xl flex items-center justify-center mb-8">
-              <span className="text-6xl text-white font-bold">QC</span>
-            </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              Welcome to QuickCourt
-            </h2>
-            <p className="text-gray-600 text-lg">
-              Book your favorite sports venues instantly
-            </p>
-          </div>
-
-          {/* Badges */}
-          <div className="absolute top-6 left-6">
-            <span className="inline-flex items-center px-4 py-2 rounded-full bg-blue-900 text-white text-sm font-medium shadow-lg">
-              Witty Narwhal
-            </span>
-          </div>
-          <div className="absolute bottom-6 left-6">
-            <span className="inline-flex items-center px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-medium shadow-lg">
-              Beautiful Dolphin
-            </span>
-          </div>
-        </div>
-
-        {/* Vertical divider */}
-        <div className="absolute right-0 top-0 w-px h-full bg-gray-200"></div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-purple-100 flex items-center justify-center p-4">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            rotate: 360,
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/30 to-cyan-200/30 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            rotate: -360,
+            scale: [1.1, 1, 1.1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-3xl"
+        />
       </div>
 
-      {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile badges - shown only on mobile */}
-          <div className="lg:hidden mb-8 flex justify-between">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-blue-900 text-white text-xs font-medium">
-              Witty Narwhal
-            </span>
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-pink-500 text-white text-xs font-medium">
-              Beautiful Dolphin
-            </span>
-          </div>
+      {/* Main Card */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20"
+      >
+        {/* Header */}
+        <div className="text-center mb-8">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg"
+          >
+            <Zap className="w-8 h-8 text-white" />
+          </motion.div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Welcome Back
+          </h1>
+          <p className="text-gray-600 mt-1">Sign in to continue your journey</p>
+        </div>
 
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-wide">
-              QUICKCOURT
-            </h1>
-            <h2 className="text-lg font-semibold text-gray-600 tracking-wider">
-              LOGIN
-            </h2>
-          </div>
-
-          {/* Error Message */}
+        {/* Error Message */}
+        <AnimatePresence>
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm text-center">{error}</p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2"
+            >
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <p className="text-red-600 text-sm">{error}</p>
+            </motion.div>
           )}
+        </AnimatePresence>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email
-              </label>
+        {/* Login Form */}
+        <motion.form
+          variants={containerVariants}
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
+          {/* Email Field */}
+          <motion.div variants={itemVariants}>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="email"
-                id="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 bg-white hover:border-gray-400"
                 placeholder="Enter your email"
               />
             </div>
+          </motion.div>
 
-            {/* Password Field */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+          {/* Password Field */}
+          <motion.div variants={itemVariants}>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 bg-white hover:border-gray-400"
+                placeholder="Enter your password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
               >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
             </div>
+          </motion.div>
 
-            {/* Login Button */}
-            <button
+          {/* Login Button */}
+          <motion.div variants={itemVariants}>
+            <motion.button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-xl font-medium shadow-lg hover:from-blue-600 hover:to-purple-700 focus:ring-4 focus:ring-blue-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Logging in...
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                  />
+                  Signing In...
                 </span>
               ) : (
-                "Login"
+                <span className="flex items-center justify-center">
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  Sign In
+                </span>
               )}
-            </button>
-          </form>
+            </motion.button>
+          </motion.div>
+        </motion.form>
 
-          {/* Footer Links */}
-          <div className="mt-8 text-center space-y-4">
-            <p className="text-gray-600">
-              Don't have an account?{" "}
-              <button
-                onClick={() => navigate("/signup")}
-                className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
-              >
-                Sign up
-              </button>
-            </p>
-            <button
-              onClick={() => navigate("/forgot-password")}
-              className="text-gray-500 hover:text-gray-700 text-sm transition-colors duration-200"
-            >
-              Forgot password?
-            </button>
+        {/* Features Section */}
+        <motion.div variants={itemVariants} className="mt-8">
+          <div className="text-center mb-4">
+            <p className="text-sm text-gray-600">Why choose QuickCourt?</p>
           </div>
-        </div>
-      </div>
+          <div className="grid grid-cols-3 gap-3">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
+                className="text-center p-3 bg-gray-50/50 rounded-xl border border-gray-100"
+              >
+                <div
+                  className={`inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r ${feature.color} mb-2`}
+                >
+                  <feature.icon className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="text-xs font-medium text-gray-900">
+                  {feature.title}
+                </h3>
+                <p className="text-xs text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Footer */}
+        <motion.div
+          variants={itemVariants}
+          className="mt-8 text-center space-y-3"
+        >
+          <p className="text-gray-600 text-sm">
+            Don't have an account?{" "}
+            <motion.button
+              onClick={() => navigate("/signup")}
+              whileHover={{ scale: 1.05 }}
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+            >
+              Sign up
+            </motion.button>
+          </p>
+          <motion.button
+            onClick={() => navigate("/forgot-password")}
+            whileHover={{ scale: 1.05 }}
+            className="text-gray-500 hover:text-gray-700 text-xs transition-colors duration-200"
+          >
+            Forgot password?
+          </motion.button>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };
