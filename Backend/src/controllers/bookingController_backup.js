@@ -8,33 +8,33 @@ import User from '../models/User.js';
 const calculateDynamicPrice = (court, bookingDate, startTime, endTime) => {
     let basePrice = court.pricePerHour;
     let multiplier = 1;
-    
+
     if (!court.dynamicPricing?.enabled) {
         return basePrice;
     }
-    
+
     const bookingDay = bookingDate.getDay(); // 0 = Sunday, 6 = Saturday
     const isWeekend = bookingDay === 0 || bookingDay === 6;
-    
+
     // Weekend pricing
     if (isWeekend && court.dynamicPricing.weekendMultiplier) {
         multiplier *= court.dynamicPricing.weekendMultiplier;
     }
-    
+
     // Peak hours pricing
     const startHour = startTime.getHours();
     const endHour = endTime.getHours();
-    
+
     court.dynamicPricing.peakHours?.forEach(peak => {
         const [peakStartHour] = peak.start.split(':').map(Number);
         const [peakEndHour] = peak.end.split(':').map(Number);
-        
+
         if ((startHour >= peakStartHour && startHour < peakEndHour) ||
             (endHour > peakStartHour && endHour <= peakEndHour)) {
             multiplier *= peak.multiplier;
         }
     });
-    
+
     return Math.round(basePrice * multiplier * 100) / 100;
 };
 
@@ -43,31 +43,31 @@ const generateTimeSlots = (openTime, closeTime, slotDuration) => {
     const slots = [];
     const [openHour, openMinute] = openTime.split(':').map(Number);
     const [closeHour, closeMinute] = closeTime.split(':').map(Number);
-    
+
     let currentHour = openHour;
     let currentMinute = openMinute;
-    
+
     while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
         const nextMinute = currentMinute + slotDuration;
         const nextHour = currentHour + Math.floor(nextMinute / 60);
         const finalMinute = nextMinute % 60;
-        
+
         if (nextHour < closeHour || (nextHour === closeHour && finalMinute <= closeMinute)) {
             const startTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
             const endTime = `${nextHour.toString().padStart(2, '0')}:${finalMinute.toString().padStart(2, '0')}`;
-            
+
             slots.push({
                 startTime,
                 endTime,
                 duration: slotDuration
             });
         }
-        
+
         currentMinute += slotDuration;
         currentHour += Math.floor(currentMinute / 60);
         currentMinute = currentMinute % 60;
     }
-    
+
     return slots;
 };
 
@@ -76,11 +76,11 @@ const isCourtInMaintenance = (court, startTime, endTime) => {
     if (!court.maintenanceSchedule || court.maintenanceSchedule.length === 0) {
         return false;
     }
-    
+
     return court.maintenanceSchedule.some(maintenance => {
         const maintenanceStart = new Date(maintenance.startDate);
         const maintenanceEnd = new Date(maintenance.endDate);
-        
+
         return (startTime < maintenanceEnd && endTime > maintenanceStart);
     });
 };
@@ -104,7 +104,7 @@ export const getAvailableSlots = async (req, res) => {
         const selectedDate = new Date(date);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         if (selectedDate < today) {
             return res.status(400).json({
                 success: false,
@@ -149,7 +149,7 @@ export const getAvailableSlots = async (req, res) => {
         // Check advance booking limit
         const maxBookingDate = new Date();
         maxBookingDate.setDate(maxBookingDate.getDate() + court.advanceBookingDays);
-        
+
         if (selectedDate > maxBookingDate) {
             return res.status(400).json({
                 success: false,
@@ -160,10 +160,10 @@ export const getAvailableSlots = async (req, res) => {
         // Get day of week
         const bookingDate = new Date(date);
         const dayOfWeek = bookingDate.toLocaleDateString('en-US', { weekday: 'lowercase' });
-        
+
         // Get operating hours (court specific or venue default)
         const operatingHours = court.operatingHours?.[dayOfWeek] || venue.operatingHours?.[dayOfWeek];
-        
+
         if (!operatingHours || !operatingHours.isOpen) {
             return res.status(200).json({
                 success: true,
@@ -182,7 +182,7 @@ export const getAvailableSlots = async (req, res) => {
         // Get existing bookings for this court and date
         const startOfDay = new Date(bookingDate);
         startOfDay.setHours(0, 0, 0, 0);
-        
+
         const endOfDay = new Date(bookingDate);
         endOfDay.setHours(23, 59, 59, 999);
 
@@ -201,7 +201,7 @@ export const getAvailableSlots = async (req, res) => {
             const slotStart = new Date(bookingDate);
             const [startHour, startMinute] = slot.startTime.split(':').map(Number);
             slotStart.setHours(startHour, startMinute, 0, 0);
-            
+
             const slotEnd = new Date(bookingDate);
             const [endHour, endMinute] = slot.endTime.split(':').map(Number);
             slotEnd.setHours(endHour, endMinute, 0, 0);
@@ -234,8 +234,8 @@ export const getAvailableSlots = async (req, res) => {
                 originalPrice: court.pricePerHour,
                 isPeakTime: dynamicPrice > court.pricePerHour,
                 inMaintenance,
-                reason: inMaintenance ? 'Under maintenance' : 
-                        !canAccommodateRequest ? 'Insufficient capacity' : null
+                reason: inMaintenance ? 'Under maintenance' :
+                    !canAccommodateRequest ? 'Insufficient capacity' : null
             };
         });
 
@@ -274,15 +274,15 @@ export const getAvailableSlots = async (req, res) => {
 // @access  Private (Authenticated users)
 export const createBooking = async (req, res) => {
     try {
-        const { 
-            venueId, 
-            courtId, 
-            date, 
-            startTime, 
-            endTime, 
-            participants, 
+        const {
+            venueId,
+            courtId,
+            date,
+            startTime,
+            endTime,
+            participants,
             participantDetails = [],
-            notes, 
+            notes,
             specialRequests,
             bookingSource = 'web',
             isRecurring = false,
@@ -354,7 +354,7 @@ export const createBooking = async (req, res) => {
         // Check advance booking limit
         const maxBookingDate = new Date();
         maxBookingDate.setDate(maxBookingDate.getDate() + court.advanceBookingDays);
-        
+
         if (bookingDate > maxBookingDate) {
             return res.status(400).json({
                 success: false,
@@ -407,7 +407,7 @@ export const createBooking = async (req, res) => {
         // Check operating hours
         const dayOfWeek = bookingDate.toLocaleDateString('en-US', { weekday: 'lowercase' });
         const operatingHours = court.operatingHours?.[dayOfWeek] || venue.operatingHours?.[dayOfWeek];
-        
+
         if (!operatingHours || !operatingHours.isOpen) {
             return res.status(400).json({
                 success: false,
@@ -417,10 +417,10 @@ export const createBooking = async (req, res) => {
 
         const [openHour, openMinute] = operatingHours.openTime.split(':').map(Number);
         const [closeHour, closeMinute] = operatingHours.closeTime.split(':').map(Number);
-        
+
         const openTime = new Date(bookingDate);
         openTime.setHours(openHour, openMinute, 0, 0);
-        
+
         const closeTime = new Date(bookingDate);
         closeTime.setHours(closeHour, closeMinute, 0, 0);
 
@@ -474,7 +474,7 @@ export const createBooking = async (req, res) => {
         const basePrice = court.pricePerHour;
         const durationInHours = duration / 60;
         const totalPrice = Math.round(dynamicPricePerHour * durationInHours * 100) / 100;
-        
+
         // Calculate taxes (assuming 18% GST)
         const taxes = Math.round(totalPrice * 0.18 * 100) / 100;
         const finalAmount = totalPrice + taxes;
@@ -544,114 +544,103 @@ export const createBooking = async (req, res) => {
         });
     }
 };
-                success: false,
-                message: 'End time must be after start time'
-            });
-        }
 
-        // Find court and venue
-        const court = await Court.findById(courtId).populate('venueId');
-        if (!court) {
-            return res.status(404).json({
-                success: false,
-                message: 'Court not found'
-            });
-        }
-
-        // Verify court belongs to the specified venue
-        if (court.venueId._id.toString() !== venueId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Court does not belong to the specified venue'
-            });
-        }
-
-        // Check venue status
-        if (court.venueId.status !== 'approved') {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot book courts at venues that are not approved'
-            });
-        }
-
-        // Check if the booking time is within operating hours
-        const bookingDate = new Date(bookingStartTime);
-        const dayStart = new Date(bookingDate);
-        dayStart.setHours(0, 0, 0, 0);
-
-        const [openHour, openMinute] = court.operatingHours.open.split(':').map(Number);
-        const [closeHour, closeMinute] = court.operatingHours.close.split(':').map(Number);
-
-        const openTime = new Date(dayStart);
-        openTime.setHours(openHour, openMinute, 0, 0);
-
-        const closeTime = new Date(dayStart);
-        closeTime.setHours(closeHour, closeMinute, 0, 0);
-
-        if (bookingStartTime < openTime || bookingEndTime > closeTime) {
-            return res.status(400).json({
-                success: false,
-                message: `Booking time must be within operating hours: ${ court.operatingHours.open } - ${ court.operatingHours.close }`
-            });
-    }
-
-        // Check for overlapping bookings
-        const overlappingBookings = await Booking.find({
-        courtId,
-        status: { $in: ['booked', 'completed'] },
-        $or: [
-            {
-                startTime: { $lt: bookingEndTime },
-                endTime: { $gt: bookingStartTime }
-            }
-        ]
-    });
-
-    if (overlappingBookings.length > 0) {
-        return res.status(400).json({
-            success: false,
-            message: 'Court is not available for the selected time slot',
-            conflictingBookings: overlappingBookings.map(booking => ({
-                startTime: booking.startTime,
-                endTime: booking.endTime
-            }))
-        });
-    }
-
-    // Calculate price based on duration and court's price per hour
-    const durationInHours = (bookingEndTime - bookingStartTime) / (1000 * 60 * 60);
-    const totalPrice = Math.round(durationInHours * court.pricePerHour * 100) / 100; // Round to 2 decimal places
-
-    // Create booking
-    const booking = await Booking.create({
-        userId: req.user._id,
-        venueId,
-        courtId,
-        startTime: bookingStartTime,
-        endTime: bookingEndTime,
-        price: totalPrice,
-        paymentStatus
-    });
-
-    // Populate booking details for response
-    await booking.populate([
-        { path: 'userId', select: 'name email' },
-        { path: 'venueId', select: 'name address' },
-        { path: 'courtId', select: 'name sportType pricePerHour' }
-    ]);
-
-    res.status(201).json({
-        success: true,
-        message: 'Booking created successfully',
-        booking
-    });
-} catch (error) {
-    res.status(500).json({
+// Find court and venue
+const court = await Court.findById(courtId).populate('venueId');
+if (!court) {
+    return res.status(404).json({
         success: false,
-        message: error.message
+        message: 'Court not found'
     });
 }
-};
+
+// Verify court belongs to the specified venue
+if (court.venueId._id.toString() !== venueId) {
+    return res.status(400).json({
+        success: false,
+        message: 'Court does not belong to the specified venue'
+    });
+}
+
+// Check venue status
+if (court.venueId.status !== 'approved') {
+    return res.status(400).json({
+        success: false,
+        message: 'Cannot book courts at venues that are not approved'
+    });
+}
+
+// Check if the booking time is within operating hours
+const bookingDate = new Date(bookingStartTime);
+const dayStart = new Date(bookingDate);
+dayStart.setHours(0, 0, 0, 0);
+
+const [openHour, openMinute] = court.operatingHours.open.split(':').map(Number);
+const [closeHour, closeMinute] = court.operatingHours.close.split(':').map(Number);
+
+const openTime = new Date(dayStart);
+openTime.setHours(openHour, openMinute, 0, 0);
+
+const closeTime = new Date(dayStart);
+closeTime.setHours(closeHour, closeMinute, 0, 0);
+
+if (bookingStartTime < openTime || bookingEndTime > closeTime) {
+    return res.status(400).json({
+        success: false,
+        message: `Booking time must be within operating hours: ${court.operatingHours.open} - ${court.operatingHours.close}`
+    });
+}
+
+// Check for overlapping bookings
+const overlappingBookings = await Booking.find({
+    courtId,
+    status: { $in: ['booked', 'completed'] },
+    $or: [
+        {
+            startTime: { $lt: bookingEndTime },
+            endTime: { $gt: bookingStartTime }
+        }
+    ]
+});
+
+if (overlappingBookings.length > 0) {
+    return res.status(400).json({
+        success: false,
+        message: 'Court is not available for the selected time slot',
+        conflictingBookings: overlappingBookings.map(booking => ({
+            startTime: booking.startTime,
+            endTime: booking.endTime
+        }))
+    });
+}
+
+// Calculate price based on duration and court's price per hour
+const durationInHours = (bookingEndTime - bookingStartTime) / (1000 * 60 * 60);
+const totalPrice = Math.round(durationInHours * court.pricePerHour * 100) / 100; // Round to 2 decimal places
+
+// Create booking
+const booking = await Booking.create({
+    userId: req.user._id,
+    venueId,
+    courtId,
+    startTime: bookingStartTime,
+    endTime: bookingEndTime,
+    price: totalPrice,
+    paymentStatus
+});
+
+// Populate booking details for response
+await booking.populate([
+    { path: 'userId', select: 'name email' },
+    { path: 'venueId', select: 'name address' },
+    { path: 'courtId', select: 'name sportType pricePerHour' }
+]);
+
+res.status(201).json({
+    success: true,
+    message: 'Booking created successfully',
+    booking
+});
 
 // @desc    Get user's bookings
 // @route   GET /api/bookings/user
