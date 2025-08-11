@@ -18,6 +18,14 @@ import {
   Save,
   RotateCcw,
   Building2,
+  Users,
+  Award,
+  Shield,
+  Zap,
+  TrendingUp,
+  Info,
+  Crown,
+  Heart,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useVenues } from "../hooks/useVenues";
@@ -36,6 +44,214 @@ const Profile = () => {
     getAllVenues,
     clearVenueError,
   } = useVenues();
+
+  // Enhanced Admin Venue Card Component
+  const AdminVenueCard = ({ venue, type = "accepted" }) => {
+    const getDisplayImage = () => {
+      if (venue.images?.[0]?.url) return venue.images[0].url;
+      if (venue.coverImage?.url) return venue.coverImage.url;
+      return `/api/placeholder/300/200?text=${encodeURIComponent(venue.name)}`;
+    };
+
+    const getStatusBadge = () => {
+      const isAccepted = type === "accepted";
+      return (
+        <div
+          className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold ${
+            isAccepted
+              ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200"
+              : "bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border border-red-200"
+          }`}
+        >
+          {isAccepted ? (
+            <>
+              <CheckCircle className="h-3 w-3 mr-1.5" />
+              Approved & Active
+            </>
+          ) : (
+            <>
+              <XCircle className="h-3 w-3 mr-1.5" />
+              Rejected
+            </>
+          )}
+        </div>
+      );
+    };
+
+    const formatDate = (dateString) => {
+      if (!dateString) return "N/A";
+      return new Date(dateString).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    };
+
+    return (
+      <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
+        {/* Premium Badge for featured venues */}
+        {venue.featured && (
+          <div className="absolute top-4 left-4 z-10">
+            <div className="flex items-center px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold rounded-full shadow-lg">
+              <Crown className="h-3 w-3 mr-1" />
+              Premium
+            </div>
+          </div>
+        )}
+
+        {/* Image Section */}
+        <div className="relative h-48 overflow-hidden">
+          <img
+            src={getDisplayImage()}
+            alt={venue.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              e.target.src = `/api/placeholder/300/200?text=${encodeURIComponent(
+                venue.name
+              )}`;
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+          {/* Status Badge */}
+          <div className="absolute bottom-4 left-4">{getStatusBadge()}</div>
+
+          {/* Courts Count */}
+          <div className="absolute top-4 right-4">
+            <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-semibold text-gray-800 shadow-lg">
+              {venue.totalCourts || "N/A"} Courts
+            </div>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="p-6">
+          {/* Header */}
+          <div className="mb-4">
+            <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
+              {venue.name}
+            </h3>
+            <div className="flex items-center text-gray-600 text-sm mb-2">
+              <User className="h-4 w-4 mr-2 text-blue-500" />
+              <span className="font-medium">
+                by {venue.ownerId?.name || "Unknown Owner"}
+              </span>
+            </div>
+            <div className="flex items-center text-gray-600 text-sm">
+              <MapPin className="h-4 w-4 mr-2 text-green-500" />
+              <span className="line-clamp-1">
+                {venue.address || venue.location || "Address not available"}
+              </span>
+            </div>
+          </div>
+
+          {/* Description */}
+          {venue.description && (
+            <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+              {venue.description}
+            </p>
+          )}
+
+          {/* Rejection Reason for rejected venues */}
+          {type === "rejected" && venue.reason && (
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-400 p-3 mb-4 rounded-r-lg">
+              <div className="flex items-start">
+                <Info className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-red-800 mb-1">
+                    Rejection Reason:
+                  </p>
+                  <p className="text-sm text-red-700">{venue.reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {venue.sportsTypes && venue.sportsTypes.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-xl border border-blue-100">
+                <div className="flex items-center mb-1">
+                  <Zap className="h-4 w-4 text-blue-600 mr-1" />
+                  <span className="text-xs font-semibold text-blue-800">
+                    Sports
+                  </span>
+                </div>
+                <p className="text-sm text-blue-700 font-medium">
+                  {venue.sportsTypes.slice(0, 2).join(", ")}
+                  {venue.sportsTypes.length > 2 &&
+                    ` +${venue.sportsTypes.length - 2}`}
+                </p>
+              </div>
+            )}
+
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-xl border border-green-100">
+              <div className="flex items-center mb-1">
+                <Calendar className="h-4 w-4 text-green-600 mr-1" />
+                <span className="text-xs font-semibold text-green-800">
+                  Added
+                </span>
+              </div>
+              <p className="text-sm text-green-700 font-medium">
+                {formatDate(venue.createdAt)}
+              </p>
+            </div>
+
+            {type === "accepted" && venue.submittedAt && (
+              <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-3 rounded-xl border border-purple-100">
+                <div className="flex items-center mb-1">
+                  <Award className="h-4 w-4 text-purple-600 mr-1" />
+                  <span className="text-xs font-semibold text-purple-800">
+                    Approved
+                  </span>
+                </div>
+                <p className="text-sm text-purple-700 font-medium">
+                  {formatDate(venue.submittedAt)}
+                </p>
+              </div>
+            )}
+
+            {type === "rejected" && venue.submittedAt && (
+              <div className="bg-gradient-to-r from-orange-50 to-red-50 p-3 rounded-xl border border-orange-100">
+                <div className="flex items-center mb-1">
+                  <XCircle className="h-4 w-4 text-orange-600 mr-1" />
+                  <span className="text-xs font-semibold text-orange-800">
+                    Rejected
+                  </span>
+                </div>
+                <p className="text-sm text-orange-700 font-medium">
+                  {formatDate(venue.submittedAt)}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate(`/venues/${venue._id}`)}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2.5 rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              View Details
+            </button>
+
+            {type === "accepted" && (
+              <button
+                onClick={() => navigate(`/admin/venues/${venue._id}/analytics`)}
+                className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-medium hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center"
+              >
+                <TrendingUp className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Hover effect overlay */}
+        <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-200 rounded-2xl transition-all duration-300 pointer-events-none" />
+      </div>
+    );
+  };
 
   // State management - set default tab based on user role
   const getDefaultTab = () => {
@@ -457,23 +673,62 @@ const Profile = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <div className="text-center">
-                {/* Avatar */}
-                <div className="mx-auto h-24 w-24 bg-blue-500 rounded-full flex items-center justify-center mb-4">
-                  <User className="h-12 w-12 text-white" />
+                {/* Avatar with role-specific styling */}
+                <div
+                  className={`mx-auto h-24 w-24 rounded-full flex items-center justify-center mb-4 ${
+                    user?.role === "admin"
+                      ? "bg-gradient-to-r from-purple-500 to-indigo-600"
+                      : user?.role === "owner"
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-600"
+                      : "bg-gradient-to-r from-green-500 to-emerald-600"
+                  }`}
+                >
+                  {user?.role === "admin" ? (
+                    <Shield className="h-12 w-12 text-white" />
+                  ) : user?.role === "owner" ? (
+                    <Building2 className="h-12 w-12 text-white" />
+                  ) : (
+                    <User className="h-12 w-12 text-white" />
+                  )}
                 </div>
 
-                {/* User Info */}
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  {user?.name || "User Name"}
-                </h2>
+                {/* User Info with role badge */}
+                <div className="mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                    {user?.name || "User Name"}
+                  </h2>
+
+                  {/* Role Badge */}
+                  <div
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mb-3 ${
+                      user?.role === "admin"
+                        ? "bg-purple-100 text-purple-800 border border-purple-200"
+                        : user?.role === "owner"
+                        ? "bg-blue-100 text-blue-800 border border-blue-200"
+                        : "bg-green-100 text-green-800 border border-green-200"
+                    }`}
+                  >
+                    {user?.role === "admin" && (
+                      <Crown className="h-4 w-4 mr-1" />
+                    )}
+                    {user?.role === "owner" && (
+                      <Building2 className="h-4 w-4 mr-1" />
+                    )}
+                    {user?.role === "user" && (
+                      <Users className="h-4 w-4 mr-1" />
+                    )}
+                    {user?.role?.charAt(0)?.toUpperCase() +
+                      user?.role?.slice(1) || "User"}
+                  </div>
+                </div>
 
                 <div className="space-y-3 text-left">
-                  <div className="flex items-center space-x-3 text-gray-600">
-                    <Phone className="h-4 w-4" />
+                  <div className="flex items-center space-x-3 text-gray-600 p-3 bg-gray-50 rounded-lg">
+                    <Phone className="h-4 w-4 text-blue-500" />
                     <span>{user?.phone || "9999999999"}</span>
                   </div>
-                  <div className="flex items-center space-x-3 text-gray-600">
-                    <Mail className="h-4 w-4" />
+                  <div className="flex items-center space-x-3 text-gray-600 p-3 bg-gray-50 rounded-lg">
+                    <Mail className="h-4 w-4 text-green-500" />
                     <span>{user?.email || "user@example.com"}</span>
                   </div>
                 </div>
@@ -484,11 +739,53 @@ const Profile = () => {
                     setIsEditMode(!isEditMode);
                     setActiveTab("edit");
                   }}
-                  className="mt-6 w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                  className={`mt-6 w-full text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+                    user?.role === "admin"
+                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                      : user?.role === "owner"
+                      ? "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                      : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  }`}
                 >
                   <Edit className="h-4 w-4" />
                   <span>{isEditMode ? "View Profile" : "Edit Profile"}</span>
                 </button>
+
+                {/* Admin-specific quick stats */}
+                {user?.role === "admin" && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                      Quick Overview
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-center">
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-100">
+                        <div className="text-lg font-bold text-green-600">
+                          {
+                            getFilteredAdminVenues().filter(
+                              (v) =>
+                                v.status === "Active" ||
+                                v.status === "approved" ||
+                                v.status === "Approved"
+                            ).length
+                          }
+                        </div>
+                        <div className="text-xs text-green-700">Approved</div>
+                      </div>
+                      <div className="bg-gradient-to-r from-red-50 to-pink-50 p-3 rounded-lg border border-red-100">
+                        <div className="text-lg font-bold text-red-600">
+                          {
+                            getFilteredAdminVenues().filter(
+                              (v) =>
+                                v.status === "Rejected" ||
+                                v.status === "rejected"
+                            ).length
+                          }
+                        </div>
+                        <div className="text-xs text-red-700">Rejected</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -540,13 +837,32 @@ const Profile = () => {
                         setActiveTab("accepted");
                         setIsEditMode(false);
                       }}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
                         activeTab === "accepted"
-                          ? "border-blue-500 text-blue-600"
+                          ? "border-green-500 text-green-600"
                           : "border-transparent text-gray-500 hover:text-gray-700"
                       }`}
                     >
-                      Accepted Venues
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Approved Venues</span>
+                      {allVenues && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            activeTab === "accepted"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {
+                            allVenues.filter(
+                              (v) =>
+                                v.status === "Active" ||
+                                v.status === "approved" ||
+                                v.status === "Approved"
+                            ).length
+                          }
+                        </span>
+                      )}
                     </button>
                   )}
 
@@ -557,13 +873,31 @@ const Profile = () => {
                         setActiveTab("rejected");
                         setIsEditMode(false);
                       }}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
                         activeTab === "rejected"
-                          ? "border-blue-500 text-blue-600"
+                          ? "border-red-500 text-red-600"
                           : "border-transparent text-gray-500 hover:text-gray-700"
                       }`}
                     >
-                      Rejected Venues
+                      <XCircle className="h-4 w-4" />
+                      <span>Rejected Venues</span>
+                      {allVenues && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            activeTab === "rejected"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {
+                            allVenues.filter(
+                              (v) =>
+                                v.status === "Rejected" ||
+                                v.status === "rejected"
+                            ).length
+                          }
+                        </span>
+                      )}
                     </button>
                   )}
 
@@ -966,145 +1300,86 @@ const Profile = () => {
                 ) : activeTab === "accepted" && user?.role === "admin" ? (
                   // Admin Accepted Venues Section
                   <div>
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Accepted Venues
-                      </h3>
-                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                        {getFilteredAdminVenues().length} venues
-                      </span>
+                    {/* Header with enhanced styling */}
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 mb-8">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                            <CheckCircle className="h-8 w-8 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold text-gray-900">
+                              Approved Venues
+                            </h3>
+                            <p className="text-green-700 font-medium">
+                              Venues that are active and accepting bookings
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="bg-white/70 backdrop-blur-sm px-4 py-3 rounded-xl border border-green-200 shadow-sm">
+                            <div className="text-2xl font-bold text-green-600">
+                              {getFilteredAdminVenues().length}
+                            </div>
+                            <div className="text-sm text-green-700 font-medium">
+                              Active Venues
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Accepted Venues Grid */}
+                    {/* Venues Grid with enhanced styling */}
                     {venuesLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="text-gray-600 mt-2">Loading venues...</p>
+                      <div className="flex flex-col items-center justify-center py-16 px-4">
+                        <div className="relative">
+                          <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600"></div>
+                          <div className="absolute inset-0 rounded-full border-4 border-green-100 animate-pulse"></div>
+                        </div>
+                        <p className="text-gray-600 mt-4 font-medium">
+                          Loading approved venues...
+                        </p>
+                        <p className="text-gray-500 text-sm mt-1">
+                          This may take a few moments
+                        </p>
                       </div>
                     ) : venuesError ? (
-                      <div className="text-center py-8">
-                        <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                          <AlertCircle className="h-8 w-8 text-red-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-red-900 mb-2">
                           Error Loading Venues
                         </h3>
-                        <p className="text-gray-600 mb-4">{venuesError}</p>
+                        <p className="text-red-700 mb-6">{venuesError}</p>
                         <button
                           onClick={fetchAdminVenues}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                          className="bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg"
                         >
                           Try Again
                         </button>
                       </div>
                     ) : getFilteredAdminVenues().length === 0 ? (
-                      <div className="text-center py-8">
-                        <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          No Accepted Venues
+                      <div className="bg-gradient-to-br from-gray-50 to-green-50 border border-gray-200 rounded-2xl p-12 text-center">
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
+                          <Building2 className="h-10 w-10 text-green-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">
+                          No Approved Venues Yet
                         </h3>
-                        <p className="text-gray-600 mb-4">
-                          There are no accepted venues yet.
+                        <p className="text-gray-600 max-w-md mx-auto">
+                          Once venue owners submit their venues for approval and
+                          you approve them, they'll appear here.
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {getFilteredAdminVenues().map((venue) => (
-                          <div
+                          <AdminVenueCard
                             key={venue._id}
-                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-start space-x-4">
-                              <img
-                                src={
-                                  venue.images?.[0]?.url ||
-                                  venue.coverImage?.url ||
-                                  `/api/placeholder/80/80?text=${encodeURIComponent(
-                                    venue.name
-                                  )}`
-                                }
-                                alt={venue.name}
-                                className="w-16 h-16 rounded-lg object-cover"
-                              />
-                              <div className="flex-1">
-                                <h4 className="text-lg font-semibold text-gray-900">
-                                  {venue.name}
-                                </h4>
-                                <p className="text-sm text-gray-600 mb-1">
-                                  by {venue.ownerId?.name || "Unknown Owner"}
-                                </p>
-                                <div className="flex items-center text-gray-600 text-sm mt-1">
-                                  <MapPin className="h-4 w-4 mr-1" />
-                                  <span>
-                                    {venue.address ||
-                                      venue.location ||
-                                      "Address not available"}
-                                  </span>
-                                </div>
-                                {venue.description && (
-                                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                                    {venue.description}
-                                  </p>
-                                )}
-                                <div className="flex items-center justify-between mt-3">
-                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Accepted
-                                  </span>
-                                  <div className="flex items-center space-x-2">
-                                    <button
-                                      onClick={() =>
-                                        navigate(`/venues/${venue._id}`)
-                                      }
-                                      className="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors flex items-center space-x-1"
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                      <span>View Details</span>
-                                    </button>
-                                  </div>
-                                </div>
-                                {/* Additional venue information */}
-                                <div className="mt-3 pt-3 border-t border-gray-100">
-                                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                                    {venue.totalCourts && (
-                                      <div>
-                                        <span className="font-medium">
-                                          Courts:
-                                        </span>{" "}
-                                        {venue.totalCourts}
-                                      </div>
-                                    )}
-                                    {venue.sportsTypes &&
-                                      venue.sportsTypes.length > 0 && (
-                                        <div>
-                                          <span className="font-medium">
-                                            Sports:
-                                          </span>{" "}
-                                          {venue.sportsTypes.join(", ")}
-                                        </div>
-                                      )}
-                                    {venue.createdAt && (
-                                      <div>
-                                        <span className="font-medium">
-                                          Added:
-                                        </span>{" "}
-                                        {new Date(
-                                          venue.createdAt
-                                        ).toLocaleDateString()}
-                                      </div>
-                                    )}
-                                    {venue.submittedAt && (
-                                      <div>
-                                        <span className="font-medium">
-                                          Accepted:
-                                        </span>{" "}
-                                        {new Date(
-                                          venue.submittedAt
-                                        ).toLocaleDateString()}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                            venue={venue}
+                            type="accepted"
+                          />
                         ))}
                       </div>
                     )}
@@ -1112,153 +1387,86 @@ const Profile = () => {
                 ) : activeTab === "rejected" && user?.role === "admin" ? (
                   // Admin Rejected Venues Section
                   <div>
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Rejected Venues
-                      </h3>
-                      <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
-                        {getFilteredAdminVenues().length} venues
-                      </span>
+                    {/* Header with enhanced styling */}
+                    <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl p-6 border border-red-100 mb-8">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="p-3 bg-gradient-to-r from-red-500 to-pink-600 rounded-xl shadow-lg">
+                            <XCircle className="h-8 w-8 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold text-gray-900">
+                              Rejected Venues
+                            </h3>
+                            <p className="text-red-700 font-medium">
+                              Venues that didn't meet approval criteria
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="bg-white/70 backdrop-blur-sm px-4 py-3 rounded-xl border border-red-200 shadow-sm">
+                            <div className="text-2xl font-bold text-red-600">
+                              {getFilteredAdminVenues().length}
+                            </div>
+                            <div className="text-sm text-red-700 font-medium">
+                              Rejected
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Rejected Venues Grid */}
+                    {/* Venues Grid with enhanced styling */}
                     {venuesLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="text-gray-600 mt-2">Loading venues...</p>
+                      <div className="flex flex-col items-center justify-center py-16 px-4">
+                        <div className="relative">
+                          <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-200 border-t-red-600"></div>
+                          <div className="absolute inset-0 rounded-full border-4 border-red-100 animate-pulse"></div>
+                        </div>
+                        <p className="text-gray-600 mt-4 font-medium">
+                          Loading rejected venues...
+                        </p>
+                        <p className="text-gray-500 text-sm mt-1">
+                          This may take a few moments
+                        </p>
                       </div>
                     ) : venuesError ? (
-                      <div className="text-center py-8">
-                        <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                          <AlertCircle className="h-8 w-8 text-red-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-red-900 mb-2">
                           Error Loading Venues
                         </h3>
-                        <p className="text-gray-600 mb-4">{venuesError}</p>
+                        <p className="text-red-700 mb-6">{venuesError}</p>
                         <button
                           onClick={fetchAdminVenues}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                          className="bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg"
                         >
                           Try Again
                         </button>
                       </div>
                     ) : getFilteredAdminVenues().length === 0 ? (
-                      <div className="text-center py-8">
-                        <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      <div className="bg-gradient-to-br from-gray-50 to-red-50 border border-gray-200 rounded-2xl p-12 text-center">
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-6">
+                          <Heart className="h-10 w-10 text-red-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">
                           No Rejected Venues
                         </h3>
-                        <p className="text-gray-600 mb-4">
-                          There are no rejected venues yet.
+                        <p className="text-gray-600 max-w-md mx-auto">
+                          Great! You haven't rejected any venues yet. This means
+                          all submitted venues have met your approval criteria.
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {getFilteredAdminVenues().map((venue) => (
-                          <div
+                          <AdminVenueCard
                             key={venue._id}
-                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-start space-x-4">
-                              <img
-                                src={
-                                  venue.images?.[0]?.url ||
-                                  venue.coverImage?.url ||
-                                  `/api/placeholder/80/80?text=${encodeURIComponent(
-                                    venue.name
-                                  )}`
-                                }
-                                alt={venue.name}
-                                className="w-16 h-16 rounded-lg object-cover"
-                              />
-                              <div className="flex-1">
-                                <h4 className="text-lg font-semibold text-gray-900">
-                                  {venue.name}
-                                </h4>
-                                <p className="text-sm text-gray-600 mb-1">
-                                  by {venue.ownerId?.name || "Unknown Owner"}
-                                </p>
-                                <div className="flex items-center text-gray-600 text-sm mt-1">
-                                  <MapPin className="h-4 w-4 mr-1" />
-                                  <span>
-                                    {venue.address ||
-                                      venue.location ||
-                                      "Address not available"}
-                                  </span>
-                                </div>
-                                {venue.description && (
-                                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                                    {venue.description}
-                                  </p>
-                                )}
-                                {venue.reason && (
-                                  <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
-                                    <p className="text-sm text-red-700">
-                                      <strong>Rejection Reason:</strong>{" "}
-                                      {venue.reason}
-                                    </p>
-                                  </div>
-                                )}
-                                <div className="flex items-center justify-between mt-3">
-                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                    Rejected
-                                  </span>
-                                  <div className="flex items-center space-x-2">
-                                    <button
-                                      onClick={() =>
-                                        navigate(`/venues/${venue._id}`)
-                                      }
-                                      className="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors flex items-center space-x-1"
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                      <span>View Details</span>
-                                    </button>
-                                  </div>
-                                </div>
-                                {/* Additional venue information */}
-                                <div className="mt-3 pt-3 border-t border-gray-100">
-                                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                                    {venue.totalCourts && (
-                                      <div>
-                                        <span className="font-medium">
-                                          Courts:
-                                        </span>{" "}
-                                        {venue.totalCourts}
-                                      </div>
-                                    )}
-                                    {venue.sportsTypes &&
-                                      venue.sportsTypes.length > 0 && (
-                                        <div>
-                                          <span className="font-medium">
-                                            Sports:
-                                          </span>{" "}
-                                          {venue.sportsTypes.join(", ")}
-                                        </div>
-                                      )}
-                                    {venue.createdAt && (
-                                      <div>
-                                        <span className="font-medium">
-                                          Added:
-                                        </span>{" "}
-                                        {new Date(
-                                          venue.createdAt
-                                        ).toLocaleDateString()}
-                                      </div>
-                                    )}
-                                    {venue.submittedAt && (
-                                      <div>
-                                        <span className="font-medium">
-                                          Rejected:
-                                        </span>{" "}
-                                        {new Date(
-                                          venue.submittedAt
-                                        ).toLocaleDateString()}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                            venue={venue}
+                            type="rejected"
+                          />
                         ))}
                       </div>
                     )}

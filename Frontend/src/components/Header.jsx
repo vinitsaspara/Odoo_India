@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Search,
-  MapPin,
   Menu,
   X,
   User,
@@ -18,7 +16,6 @@ import { useAuth } from "../hooks/useAuth";
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [searchLocation, setSearchLocation] = useState("Ahmedabad");
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
   const userMenuRef = useRef(null);
@@ -116,12 +113,6 @@ const Header = () => {
     return baseItems;
   };
 
-  const handleLocationSearch = (e) => {
-    e.preventDefault();
-    // Implement location search functionality
-    console.log("Searching for:", searchLocation);
-  };
-
   const handleLogout = () => {
     logout();
     setIsUserMenuOpen(false);
@@ -133,8 +124,8 @@ const Header = () => {
   const userMenuItems = getUserMenuItems();
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-lg">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
@@ -144,28 +135,6 @@ const Header = () => {
             >
               QUICKCOURT
             </button>
-          </div>
-
-          {/* Location Search Bar - Desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <form onSubmit={handleLocationSearch} className="w-full">
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchLocation}
-                  onChange={(e) => setSearchLocation(e.target.value)}
-                  placeholder="Search location..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-1.5 rounded-md hover:bg-blue-700 transition-colors duration-200"
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-              </div>
-            </form>
           </div>
 
           {/* Desktop Navigation */}
@@ -371,26 +340,6 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-200">
-              {/* Mobile Location Search */}
-              <form onSubmit={handleLocationSearch} className="mb-4">
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchLocation}
-                    onChange={(e) => setSearchLocation(e.target.value)}
-                    placeholder="Search location..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-1.5 rounded-md hover:bg-blue-700"
-                  >
-                    <Search className="h-4 w-4" />
-                  </button>
-                </div>
-              </form>
-
               {/* Navigation Links */}
               {navigationLinks.map((link) => {
                 const IconComponent = link.icon;

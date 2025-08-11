@@ -1,5 +1,14 @@
-import { Star, MapPin, Users, Calendar, Clock, Zap } from "lucide-react";
+import {
+  Star,
+  MapPin,
+  Users,
+  Calendar,
+  Clock,
+  Zap,
+  Sparkles,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   getVenuePlaceholder,
   handleImageError,
@@ -77,64 +86,77 @@ const VenueCard = ({ venue }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] border border-gray-100">
+    <motion.div
+      whileHover={{ scale: 1.02, y: -8 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl overflow-hidden border border-white/30 group relative"
+    >
       {/* Image */}
       <div
-        className="relative h-48 overflow-hidden cursor-pointer"
+        className="relative h-56 overflow-hidden cursor-pointer"
         onClick={handleViewDetails}
       >
         <img
           src={getDisplayImage()}
           alt={name || "Venue"}
-          className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           onError={(e) => handleImageError(e, `${name || "Venue"} Image`)}
           loading="lazy"
         />
 
-        {/* Overlay with gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
         {/* Status Badge */}
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-4 left-4">
           <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm border ${
+              isActive
+                ? "bg-green-500/90 text-white border-green-400/50"
+                : "bg-red-500/90 text-white border-red-400/50"
+            } shadow-lg`}
           >
-            {isActive ? "Open" : "Closed"}
+            {isActive ? "Open Now" : "Closed"}
           </span>
         </div>
 
         {/* Courts Count */}
-        <div className="absolute top-3 right-3">
-          <span className="bg-white bg-opacity-95 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-gray-800 shadow-sm">
+        <div className="absolute top-4 right-4">
+          <span className="bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-bold text-gray-800 shadow-lg border border-white/30">
             {totalCourts} Courts
           </span>
         </div>
 
         {/* Rating Badge */}
-        <div className="absolute bottom-3 right-3">
-          <div className="flex items-center space-x-1 bg-white bg-opacity-95 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm">
-            <Star className="h-3 w-3 text-yellow-400 fill-current" />
-            <span className="text-xs font-semibold text-gray-800">
+        <div className="absolute bottom-4 right-4">
+          <div className="flex items-center space-x-1.5 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg border border-white/30">
+            <Star className="h-4 w-4 text-yellow-500 fill-current" />
+            <span className="text-sm font-bold text-gray-800">
               {getRatingDisplay()}
             </span>
           </div>
         </div>
+
+        {/* Floating Sparkle Effect */}
+        <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <Sparkles className="h-6 w-6 text-white drop-shadow-lg" />
+        </div>
       </div>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-6">
         {/* Title */}
-        <div className="mb-3">
+        <div className="mb-4">
           <h3
-            className="text-xl font-bold text-gray-900 line-clamp-1 hover:text-blue-600 transition-colors cursor-pointer"
+            className="text-xl font-bold text-gray-900 line-clamp-1 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text hover:text-transparent transition-all duration-300 cursor-pointer"
             onClick={handleViewDetails}
           >
             {name}
           </h3>
 
           {/* Location */}
-          <div className="flex items-center text-gray-600 mt-1">
-            <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+          <div className="flex items-center text-gray-600 mt-2">
+            <MapPin className="h-4 w-4 mr-2 flex-shrink-0 text-blue-500" />
             <span className="text-sm line-clamp-1">
               {location?.address || location}
             </span>
@@ -143,20 +165,20 @@ const VenueCard = ({ venue }) => {
 
         {/* Sports Types */}
         {sportsTypes && sportsTypes.length > 0 && (
-          <div className="mb-3">
-            <div className="flex flex-wrap gap-1">
-              {sportsTypes.slice(0, 3).map((sport, index) => (
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-2">
+              {sportsTypes.slice(0, 2).map((sport, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-2.5 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200"
+                  className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-xs font-semibold rounded-full border border-blue-200/50 backdrop-blur-sm"
                 >
                   <Zap className="h-3 w-3 mr-1" />
                   {sport}
                 </span>
               ))}
-              {sportsTypes.length > 3 && (
-                <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full border border-gray-200">
-                  +{sportsTypes.length - 3} more
+              {sportsTypes.length > 2 && (
+                <span className="inline-flex items-center px-3 py-1.5 bg-gray-100/80 backdrop-blur-sm text-gray-600 text-xs font-semibold rounded-full border border-gray-200/50">
+                  +{sportsTypes.length - 2}
                 </span>
               )}
             </div>
@@ -165,9 +187,9 @@ const VenueCard = ({ venue }) => {
 
         {/* Operating Hours */}
         {operatingHours && (
-          <div className="flex items-center text-gray-600 mb-3">
-            <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
-            <span className="text-sm">
+          <div className="flex items-center text-gray-600 mb-4 p-3 bg-gradient-to-r from-gray-50/80 to-blue-50/80 backdrop-blur-sm rounded-2xl border border-gray-200/30">
+            <Clock className="h-4 w-4 mr-2 flex-shrink-0 text-green-600" />
+            <span className="text-sm font-medium">
               {typeof operatingHours === "string"
                 ? operatingHours
                 : operatingHours.weekdays || "Check hours"}
@@ -177,39 +199,48 @@ const VenueCard = ({ venue }) => {
 
         {/* Amenities */}
         {amenities && amenities.length > 0 && (
-          <div className="flex items-center text-gray-600 mb-4">
-            <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-            <span className="text-sm">
+          <div className="flex items-center text-gray-600 mb-4 p-3 bg-gradient-to-r from-purple-50/80 to-pink-50/80 backdrop-blur-sm rounded-2xl border border-purple-200/30">
+            <Users className="h-4 w-4 mr-2 flex-shrink-0 text-purple-600" />
+            <span className="text-sm font-medium">
               {amenities.slice(0, 2).join(", ")}
-              {amenities.length > 2 && ` +${amenities.length - 2} more`}
+              {amenities.length > 2 && ` +${amenities.length - 2}`}
             </span>
           </div>
         )}
 
         {/* Price Range */}
-        <div className="flex items-center justify-between mb-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-100">
-          <div>
-            <span className="text-sm text-gray-600 block">Starting from</span>
-            <span className="text-xl font-bold text-green-700">
-              {formatPrice()}
-            </span>
-          </div>
-          {priceRange && priceRange.min !== priceRange.max && (
-            <div className="text-right">
-              <span className="text-xs text-gray-500">per hour</span>
+        <div className="mb-6 p-4 bg-gradient-to-r from-green-50/90 to-emerald-50/90 backdrop-blur-sm rounded-2xl border border-green-200/40 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs text-gray-600 font-medium block mb-1">
+                Starting from
+              </span>
+              <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                {formatPrice()}
+              </span>
             </div>
-          )}
+            <div className="text-right">
+              <span className="text-xs text-gray-500 font-medium">
+                per hour
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Action Button */}
-        <button
+        <motion.button
           onClick={handleViewDetails}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-[1.02] shadow-md hover:shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-4 px-6 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl border border-blue-400/30"
         >
-          View Details & Book Now
-        </button>
+          <span className="flex items-center justify-center">
+            <Calendar className="w-5 h-5 mr-2" />
+            Book Now
+          </span>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
