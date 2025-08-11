@@ -290,7 +290,7 @@ const VenueDetails = () => {
     }
 
     try {
-      // Prepare booking data in the new format
+      // Prepare booking data for Stripe checkout
       const bookingData = {
         venueId: venue._id,
         courtId: selectedCourt._id,
@@ -300,30 +300,27 @@ const VenueDetails = () => {
         price: selectedSlotObj.price || selectedCourt.pricePerHour,
       };
 
-      console.log("Submitting booking:", bookingData);
-      const response = await api.post("/bookings", bookingData);
+      console.log("Creating Stripe checkout session:", bookingData);
+
+      // Call create-checkout-session endpoint
+      const response = await api.post(
+        "/payments/create-checkout-session",
+        bookingData
+      );
 
       if (response.data.success) {
-        alert(
-          `Booking confirmed! Your booking for ${selectedCourt.name} on ${selectedDate} at ${selectedTimeSlot} has been created successfully.`
-        );
-
-        // Reset modal state and redirect to MyBookings page
-        setShowBookingModal(false);
-        setSelectedCourt(null);
-        setSelectedTimeSlot("");
-        setAvailableSlots([]);
-        navigate("/my-bookings");
+        // Redirect to Stripe Checkout
+        window.location.href = response.data.sessionUrl;
       } else {
-        alert(`Booking failed: ${response.data.message}`);
+        alert(`Payment setup failed: ${response.data.message}`);
       }
     } catch (error) {
-      console.error("Booking error:", error);
+      console.error("Checkout session creation error:", error);
 
       if (error.response?.data?.message) {
-        alert(`Booking failed: ${error.response.data.message}`);
+        alert(`Payment setup failed: ${error.response.data.message}`);
       } else {
-        alert("Failed to create booking. Please try again.");
+        alert("Failed to setup payment. Please try again.");
       }
     }
   };
@@ -799,7 +796,7 @@ const VenueDetails = () => {
                 disabled={!selectedDate || !selectedTimeSlot || isLoadingSlots}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {isLoadingSlots ? "Loading..." : "Confirm Booking"}
+                {isLoadingSlots ? "Loading..." : "Proceed to Payment"}
               </button>
             </div>
           </div>

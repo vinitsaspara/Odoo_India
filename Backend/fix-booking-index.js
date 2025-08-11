@@ -1,13 +1,14 @@
-// Script to fix the duplicate key error by d        const testBooking = new Booking({
-userId: new mongoose.Types.ObjectId(),
-    venueId: new mongoose.Types.ObjectId(),
-        courtId: new mongoose.Types.ObjectId(),
-            date: new Date('2025-08-15'),
-                startTime: '10:00', // Use valid time format
-                    endTime: '11:00',
-                        price: 100,
-                            status: 'booked'
-        });e old bookingId index
+// // Script to fix the duplicate key error by d       
+// const testBooking = new Booking({
+// userId: new mongoose.Types.ObjectId(),
+//     venueId: new mongoose.Types.ObjectId(),
+//         courtId: new mongoose.Types.ObjectId(),
+//             date: new Date('2025-08-15'),
+//                 startTime: '10:00', // Use valid time format
+//                     endTime: '11:00',
+//                         price: 100,
+//                             status: 'booked'
+//         });
 import mongoose from 'mongoose';
 import Booking from './src/models/Booking.js';
 

@@ -11,6 +11,8 @@ import BookingDetails from "./pages/BookingDetails";
 import WriteReview from "./pages/WriteReview";
 import AddVenue from "./pages/AddVenue";
 import EditVenue from "./pages/EditVenue";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancelled from "./pages/PaymentCancelled";
 import Layout from "./components/Layout";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import "./App.css";
@@ -135,6 +137,28 @@ function App() {
             <Layout>
               <RoleProtectedRoute allowedRoles={["admin"]} redirectTo="/">
                 <AdminDashboard />
+              </RoleProtectedRoute>
+            </Layout>
+          }
+        />
+
+        {/* Payment pages */}
+        <Route
+          path="/payment-success"
+          element={
+            <Layout>
+              <RoleProtectedRoute allowedRoles={["user"]} redirectTo="/">
+                <PaymentSuccess />
+              </RoleProtectedRoute>
+            </Layout>
+          }
+        />
+        <Route
+          path="/payment-cancelled"
+          element={
+            <Layout>
+              <RoleProtectedRoute allowedRoles={["user"]} redirectTo="/">
+                <PaymentCancelled />
               </RoleProtectedRoute>
             </Layout>
           }

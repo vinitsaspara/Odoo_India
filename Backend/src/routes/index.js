@@ -3,6 +3,7 @@ import authRoutes from './authRoutes.js';
 import venueRoutes from './venueRoutes.js';
 import courtRoutes from './courtRoutes.js';
 import bookingRoutes from './bookingRoutes.js';
+import paymentRoutes from './paymentRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import ownerRoutes from './ownerRoutes.js';
 import placeholderRoutes from './placeholderRoutes.js';
@@ -14,6 +15,7 @@ router.use('/auth', authRoutes);
 router.use('/venues', venueRoutes);
 router.use('/courts', courtRoutes);
 router.use('/bookings', bookingRoutes);
+router.use('/payments', paymentRoutes);
 router.use('/admin', adminRoutes);
 router.use('/owner', ownerRoutes);
 router.use('/', placeholderRoutes); // Placeholder images

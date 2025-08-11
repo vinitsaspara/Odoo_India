@@ -21,8 +21,10 @@ import {
   CheckCircle,
   AlertCircle,
   Wrench,
+  IndianRupee,
 } from "lucide-react";
 import { useVenues } from "../hooks/useVenues";
+import VenueStatsCard from "../components/VenueStatsCard";
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
@@ -41,6 +43,9 @@ const OwnerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [recentBookings, setRecentBookings] = useState([]); // Added back for bookings display
+  const [earningsData, setEarningsData] = useState(null);
+  const [earningsLoading, setEarningsLoading] = useState(false);
+  const [selectedVenue, setSelectedVenue] = useState(null);
 
   const timeRangeOptions = [
     { value: "today", label: "Today" },
@@ -62,6 +67,7 @@ const OwnerDashboard = () => {
   useEffect(() => {
     // Fetch venues when component mounts
     getOwnerVenues({ page: 1, limit: 100 });
+    fetchEarningsData();
   }, [getOwnerVenues]);
 
   // Clear error when component unmounts
@@ -71,7 +77,81 @@ const OwnerDashboard = () => {
     };
   }, [clearVenueError]);
 
-  // Calculate KPIs from venues
+  const fetchEarningsData = async () => {
+    try {
+      setEarningsLoading(true);
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/owner/earnings`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setEarningsData(data.data);
+
+        // Also fetch venue stats for each venue to get real-time data
+        if (data.data.venueEarnings) {
+          data.data.venueEarnings.forEach(async (venueEarning) => {
+            if (venueEarning.venueId?._id) {
+              await fetchVenueRealTimeStats(venueEarning.venueId._id);
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching earnings:", err);
+    } finally {
+      setEarningsLoading(false);
+    }
+  };
+
+  const fetchVenueRealTimeStats = async (venueId) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/payments/venue-stats/${venueId}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Real-time venue stats:", data.data);
+        // You can store this in state if needed for individual venue updates
+      }
+    } catch (err) {
+      console.error("Error fetching venue stats:", err);
+    }
+  };
+
+  const fetchVenueDetails = async (venueId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/owner/earnings/venue/${venueId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedVenue(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching venue details:", err);
+    }
+  };
+
+  // Calculate KPIs from venues and earnings
   const calculateKpis = () => {
     const activeVenues = venues.filter((v) => v.status === "Active").length;
     const pendingVenues = venues.filter(
@@ -79,15 +159,21 @@ const OwnerDashboard = () => {
     ).length;
     const rejectedVenues = venues.filter((v) => v.status === "Rejected").length;
 
+    // Use real earnings data if available
+    const totalEarnings = earningsData?.summary?.totalEarnings || 0;
+    const pendingEarnings = earningsData?.summary?.pendingEarnings || 0;
+    const totalBookings = earningsData?.summary?.totalBookings || 0;
+
     return {
       totalVenues: venues.length,
       activeVenues: activeVenues,
       pendingVenues: pendingVenues,
       rejectedVenues: rejectedVenues,
-      totalBookings: 0, // Will be updated when booking API is integrated
-      totalEarnings: 0,
+      totalBookings: totalBookings,
+      totalEarnings: totalEarnings,
+      pendingEarnings: pendingEarnings,
       occupancyRate: 0,
-      totalRevenue: 0,
+      totalRevenue: totalEarnings, // Revenue same as earnings for now
       bookingsGrowth: 0,
       earningsGrowth: 0,
       occupancyGrowth: 0,
@@ -99,6 +185,7 @@ const OwnerDashboard = () => {
 
   const handleRefresh = () => {
     getOwnerVenues({ page: 1, limit: 100 });
+    fetchEarningsData();
   };
 
   const filteredVenues = venues.filter((venue) => {
@@ -279,32 +366,23 @@ const OwnerDashboard = () => {
             </div>
           </div>
 
-          {/* Occupancy Rate */}
+          {/* Pending Earnings */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
-                  Occupancy Rate
+                  Pending Earnings
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {kpis.occupancyRate}%
+                  {formatCurrency(kpis.pendingEarnings)}
                 </p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
+              <div className="p-3 bg-orange-100 rounded-full">
+                <Clock className="h-6 w-6 text-orange-600" />
               </div>
             </div>
             <div className="flex items-center mt-4">
-              {getGrowthIcon(kpis.occupancyGrowth)}
-              <span
-                className={`text-sm font-medium ml-1 ${getGrowthColor(
-                  kpis.occupancyGrowth
-                )}`}
-              >
-                {kpis.occupancyGrowth > 0 ? "+" : ""}
-                {kpis.occupancyGrowth}%
-              </span>
-              <span className="text-sm text-gray-500 ml-2">vs last period</span>
+              <span className="text-sm text-gray-500">Awaiting payout</span>
             </div>
           </div>
 
@@ -337,6 +415,67 @@ const OwnerDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Earnings Overview */}
+        {earningsData &&
+          earningsData.venueEarnings &&
+          earningsData.venueEarnings.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm mb-8">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Earnings by Venue
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {earningsData.venueEarnings.map((venueEarning) => (
+                    <div
+                      key={venueEarning._id}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <h3 className="font-medium text-gray-900 mb-2">
+                        {venueEarning.venueId?.name || "Unknown Venue"}
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">
+                            Total Earnings:
+                          </span>
+                          <span className="text-sm font-medium text-green-600">
+                            {formatCurrency(venueEarning.totalEarnings)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">
+                            Pending:
+                          </span>
+                          <span className="text-sm font-medium text-orange-600">
+                            {formatCurrency(venueEarning.pendingEarnings)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">
+                            Bookings:
+                          </span>
+                          <span className="text-sm font-medium">
+                            {venueEarning.totalBookings}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          fetchVenueDetails(venueEarning.venueId._id)
+                        }
+                        className="w-full mt-3 text-sm bg-blue-50 text-blue-600 py-2 rounded-lg hover:bg-blue-100"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Owned Venues */}
@@ -465,7 +604,10 @@ const OwnerDashboard = () => {
 
                           <div className="text-right">
                             <p className="text-lg font-semibold text-green-600">
-                              {formatCurrency(venue.monthlyEarnings || 0)}
+                              {/* Real-time earnings will be updated by VenueStatsCard */}
+                              <span id={`earnings-${venue._id}`}>
+                                {formatCurrency(venue.monthlyEarnings || 0)}
+                              </span>
                             </p>
                             <p className="text-sm text-gray-600">This month</p>
                           </div>
@@ -475,19 +617,7 @@ const OwnerDashboard = () => {
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Courts</p>
                             <p className="font-semibold">
-                              {venue.totalCourts || 0}/{venue.totalCourts || 0}
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-sm text-gray-600">Bookings</p>
-                            <p className="font-semibold">
-                              {venue.monthlyBookings || 0}
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-sm text-gray-600">Occupancy</p>
-                            <p className="font-semibold">
-                              {venue.occupancyRate || 0}%
+                              {venue.courts?.length || 0}
                             </p>
                           </div>
                           <div className="text-center">
@@ -496,7 +626,32 @@ const OwnerDashboard = () => {
                               {venue.sportTypes?.length || 0}
                             </p>
                           </div>
+                          <div className="text-center">
+                            <p className="text-sm text-gray-600">Status</p>
+                            <p className="font-semibold text-green-600">
+                              {venue.status}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm text-gray-600">Rating</p>
+                            <p className="font-semibold">
+                              {venue.rating || 0}/5
+                            </p>
+                          </div>
                         </div>
+
+                        {/* Real-time Statistics */}
+                        <VenueStatsCard
+                          venueId={venue._id}
+                          onStatsUpdate={(stats) => {
+                            // You can update local state here if needed
+                            console.log(
+                              "Stats updated for venue:",
+                              venue.name,
+                              stats
+                            );
+                          }}
+                        />
 
                         <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
                           {/* Status-specific information */}
@@ -628,6 +783,118 @@ const OwnerDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Venue Earnings Details Modal */}
+        {selectedVenue && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-96 overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {selectedVenue.earnings?.venueId?.name || "Venue"} - Detailed
+                  Earnings
+                </h3>
+                <button
+                  onClick={() => setSelectedVenue(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Total Earnings</p>
+                  <p className="text-lg font-semibold text-green-600">
+                    {formatCurrency(selectedVenue.earnings?.totalEarnings || 0)}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Pending</p>
+                  <p className="text-lg font-semibold text-orange-600">
+                    {formatCurrency(
+                      selectedVenue.earnings?.pendingEarnings || 0
+                    )}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Paid Out</p>
+                  <p className="text-lg font-semibold text-blue-600">
+                    {formatCurrency(selectedVenue.earnings?.paidEarnings || 0)}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Total Bookings</p>
+                  <p className="text-lg font-semibold">
+                    {selectedVenue.earnings?.totalBookings || 0}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="text-md font-medium text-gray-900 mb-2">
+                  Recent Bookings
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Date
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Time
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Customer
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Total
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Your Earnings
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedVenue.recentBookings?.length > 0 ? (
+                        selectedVenue.recentBookings.map((booking) => (
+                          <tr key={booking._id}>
+                            <td className="px-4 py-2 text-sm text-gray-900">
+                              {new Date(booking.date).toLocaleDateString(
+                                "en-IN"
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-900">
+                              {booking.startTime} - {booking.endTime}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-900">
+                              {booking.userId?.name || "N/A"}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-900">
+                              {formatCurrency(booking.price)}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-green-600">
+                              {formatCurrency(booking.ownerEarnings)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan="5"
+                            className="px-4 py-2 text-center text-gray-500"
+                          >
+                            No recent bookings
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

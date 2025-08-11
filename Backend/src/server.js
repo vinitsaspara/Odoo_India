@@ -28,6 +28,11 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Middleware
 app.use(cors());
+
+// Stripe webhook needs raw body, so we handle it before JSON parsing
+app.use('/api/payments/webhook/stripe', express.raw({ type: 'application/json' }));
+
+// Regular JSON parsing for other routes
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 

@@ -36,8 +36,42 @@ const bookingSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['booked', 'cancelled', 'completed'],
-        default: 'booked'
+        enum: ['pending_payment', 'booked', 'cancelled', 'completed', 'payment_failed'],
+        default: 'pending_payment'
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'failed', 'refunded'],
+        default: 'pending'
+    },
+    stripeSessionId: {
+        type: String,
+        required: false
+    },
+    stripePaymentIntentId: {
+        type: String,
+        required: false
+    },
+    ownerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: [true, 'Owner ID is required']
+    },
+    ownerEarnings: {
+        type: Number,
+        default: 0
+    },
+    platformFee: {
+        type: Number,
+        default: 0
+    },
+    paidToOwner: {
+        type: Boolean,
+        default: false
+    },
+    payoutDate: {
+        type: Date,
+        required: false
     },
     createdAt: {
         type: Date,

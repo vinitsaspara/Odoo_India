@@ -333,6 +333,10 @@ const Profile = () => {
       case "cancelled":
       case "Cancelled": // Support both for backward compatibility
         return <XCircle className="h-4 w-4 text-red-500" />;
+      case "pending_payment":
+        return <AlertCircle className="h-4 w-4 text-orange-500" />;
+      case "payment_failed":
+        return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
     }
@@ -348,6 +352,10 @@ const Profile = () => {
         return "bg-blue-100 text-blue-800";
       case "cancelled":
       case "Cancelled": // Support both for backward compatibility
+        return "bg-red-100 text-red-800";
+      case "pending_payment":
+        return "bg-orange-100 text-orange-800";
+      case "payment_failed":
         return "bg-red-100 text-red-800";
       default:
         return "bg-yellow-100 text-yellow-800";

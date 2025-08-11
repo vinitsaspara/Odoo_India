@@ -9,6 +9,12 @@ import {
     deleteVenue,
     uploadVenueImages
 } from '../controllers/venueController.js';
+import {
+    getOwnerEarnings,
+    getVenueEarnings,
+    getEarningsHistory,
+    markEarningsAsPaid
+} from '../controllers/ownerController.js';
 
 const router = express.Router();
 
@@ -54,5 +60,26 @@ router.put('/venues/:id', verifyToken, requireRoles(['owner']), uploadVenueImage
 // @desc    Delete venue (owner)
 // @access  Private (Owner only)
 router.delete('/venues/:id', verifyToken, requireRoles(['owner']), deleteVenue);
+
+// Earnings Routes
+// @route   GET /api/owner/earnings
+// @desc    Get owner earnings summary
+// @access  Private (Owner only)
+router.get('/earnings', verifyToken, requireRoles(['owner']), getOwnerEarnings);
+
+// @route   GET /api/owner/earnings/venue/:venueId
+// @desc    Get earnings for a specific venue
+// @access  Private (Owner only)
+router.get('/earnings/venue/:venueId', verifyToken, requireRoles(['owner']), getVenueEarnings);
+
+// @route   GET /api/owner/earnings/history
+// @desc    Get earnings history with pagination
+// @access  Private (Owner only)
+router.get('/earnings/history', verifyToken, requireRoles(['owner']), getEarningsHistory);
+
+// @route   PUT /api/owner/earnings/mark-paid/:venueId
+// @desc    Mark earnings as paid (admin function)
+// @access  Private (Admin only - for future implementation)
+router.put('/earnings/mark-paid/:venueId', verifyToken, requireRoles(['admin']), markEarningsAsPaid);
 
 export default router;
