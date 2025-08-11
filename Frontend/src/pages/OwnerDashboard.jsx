@@ -27,14 +27,14 @@ import { useVenues } from "../hooks/useVenues";
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
-  
+
   const {
     venues,
     isLoading,
     error,
     pagination,
     getOwnerVenues,
-    clearVenueError
+    clearVenueError,
   } = useVenues();
 
   // Local state for UI interactions
@@ -74,9 +74,11 @@ const OwnerDashboard = () => {
 
   // Calculate KPIs from venues
   const calculateKpis = () => {
-    const activeVenues = venues.filter(v => v.status === "Active").length;
-    const pendingVenues = venues.filter(v => v.status === "Pending Approval").length;
-    const rejectedVenues = venues.filter(v => v.status === "Rejected").length;
+    const activeVenues = venues.filter((v) => v.status === "Active").length;
+    const pendingVenues = venues.filter(
+      (v) => v.status === "Pending Approval"
+    ).length;
+    const rejectedVenues = venues.filter((v) => v.status === "Rejected").length;
 
     return {
       totalVenues: venues.length,
@@ -198,8 +200,10 @@ const OwnerDashboard = () => {
                 disabled={isLoading}
                 className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
+                <RefreshCw
+                  className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                />
+                <span>{isLoading ? "Refreshing..." : "Refresh"}</span>
               </button>
             </div>
           </div>

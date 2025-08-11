@@ -12,15 +12,15 @@ import {
 
 export const useVenues = () => {
     const dispatch = useDispatch();
-    const { 
-        venues, 
-        allVenues, 
-        pendingVenues, 
-        isLoading, 
-        error, 
-        pagination 
+    const {
+        venues,
+        allVenues,
+        pendingVenues,
+        isLoading,
+        error,
+        pagination
     } = useSelector(state => state.venue);
-    
+
     const { user } = useSelector(state => state.auth);
 
     // Fetch owner venues
@@ -97,7 +97,7 @@ export const useVenues = () => {
         isLoading,
         error,
         pagination,
-        
+
         // Actions
         getOwnerVenues,
         getAllVenues,

@@ -31,7 +31,7 @@ const Profile = () => {
     isLoading: venuesLoading,
     error: venuesError,
     getOwnerVenues,
-    clearVenueError
+    clearVenueError,
   } = useVenues();
 
   // State management

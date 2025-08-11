@@ -114,7 +114,7 @@ const venueSlice = createSlice({
                 state.venues = [];
                 state.error = action.payload;
             })
-            
+
             // Fetch All Venues (Admin)
             .addCase(fetchAllVenues.pending, (state) => {
                 state.isLoading = true;
@@ -138,7 +138,7 @@ const venueSlice = createSlice({
                 state.pendingVenues = [];
                 state.error = action.payload;
             })
-            
+
             // Update Venue Status
             .addCase(updateVenueStatus.pending, (state) => {
                 state.isLoading = true;
@@ -147,25 +147,25 @@ const venueSlice = createSlice({
             .addCase(updateVenueStatus.fulfilled, (state, action) => {
                 state.isLoading = false;
                 const { venueId, status } = action.payload;
-                
+
                 // Update in allVenues
                 const allVenueIndex = state.allVenues.findIndex(venue => venue._id === venueId);
                 if (allVenueIndex !== -1) {
                     state.allVenues[allVenueIndex].status = status;
                 }
-                
+
                 // Update pendingVenues (remove if no longer pending)
                 if (status !== 'pending') {
                     state.pendingVenues = state.pendingVenues.filter(venue => venue._id !== venueId);
                 }
-                
+
                 state.error = null;
             })
             .addCase(updateVenueStatus.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
             })
-            
+
             // Delete Venue
             .addCase(deleteVenue.pending, (state) => {
                 state.isLoading = true;
@@ -174,12 +174,12 @@ const venueSlice = createSlice({
             .addCase(deleteVenue.fulfilled, (state, action) => {
                 state.isLoading = false;
                 const venueId = action.payload;
-                
+
                 // Remove from all arrays
                 state.venues = state.venues.filter(venue => venue._id !== venueId);
                 state.allVenues = state.allVenues.filter(venue => venue._id !== venueId);
                 state.pendingVenues = state.pendingVenues.filter(venue => venue._id !== venueId);
-                
+
                 state.error = null;
             })
             .addCase(deleteVenue.rejected, (state, action) => {

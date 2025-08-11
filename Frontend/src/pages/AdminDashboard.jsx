@@ -36,7 +36,7 @@ const AdminDashboard = () => {
     pagination,
     getAllVenues,
     updateStatus,
-    clearVenueError
+    clearVenueError,
   } = useVenues();
 
   // Local state for UI interactions
@@ -79,9 +79,9 @@ const AdminDashboard = () => {
 
   // Calculate stats from venues
   const calculateStats = () => {
-    const activeVenues = allVenues.filter(v => v.status === "Active").length;
+    const activeVenues = allVenues.filter((v) => v.status === "Active").length;
     const pending = pendingVenues.length;
-    
+
     return {
       totalUsers: 0, // Will be updated when user API is integrated
       totalBookings: 0, // Will be updated when booking API is integrated
@@ -119,10 +119,10 @@ const AdminDashboard = () => {
     setProcessingVenue(venueId);
     try {
       await updateStatus(venueId, "Active");
-      
+
       // Add to recent activity
-      const venue = allVenues.find(v => v._id === venueId);
-      setRecentActivity(prev => [
+      const venue = allVenues.find((v) => v._id === venueId);
+      setRecentActivity((prev) => [
         {
           _id: `activity-${Date.now()}`,
           type: "venue_approved",
@@ -143,10 +143,10 @@ const AdminDashboard = () => {
     setProcessingVenue(venueId);
     try {
       await updateStatus(venueId, "Inactive");
-      
+
       // Add to recent activity
-      const venue = allVenues.find(v => v._id === venueId);
-      setRecentActivity(prev => [
+      const venue = allVenues.find((v) => v._id === venueId);
+      setRecentActivity((prev) => [
         {
           _id: `activity-${Date.now()}`,
           type: "venue_rejected",
@@ -167,10 +167,10 @@ const AdminDashboard = () => {
     setProcessingVenue(venueId);
     try {
       await updateStatus(venueId, "Active");
-      
+
       // Add to recent activity
-      const venue = pendingVenues.find(v => v._id === venueId);
-      setRecentActivity(prev => [
+      const venue = pendingVenues.find((v) => v._id === venueId);
+      setRecentActivity((prev) => [
         {
           _id: `activity-${Date.now()}`,
           type: "venue_approved",
@@ -191,10 +191,10 @@ const AdminDashboard = () => {
     setProcessingVenue(venueId);
     try {
       await updateStatus(venueId, "Rejected");
-      
+
       // Add to recent activity
-      const venue = pendingVenues.find(v => v._id === venueId);
-      setRecentActivity(prev => [
+      const venue = pendingVenues.find((v) => v._id === venueId);
+      setRecentActivity((prev) => [
         {
           _id: `activity-${Date.now()}`,
           type: "venue_rejected",
@@ -318,8 +318,10 @@ const AdminDashboard = () => {
                 disabled={isLoading}
                 className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                <span>{isLoading ? 'Refreshing...' : 'Refresh'}</span>
+                <RefreshCw
+                  className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                />
+                <span>{isLoading ? "Refreshing..." : "Refresh"}</span>
               </button>
             </div>
           </div>
