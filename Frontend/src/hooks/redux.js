@@ -5,6 +5,6 @@ export const useAppDispatch = () => useDispatch();
 export const useAppSelector = (selector) => useSelector(selector);
 
 export default {
-  useAppDispatch,
-  useAppSelector,
+    useAppDispatch,
+    useAppSelector,
 };
