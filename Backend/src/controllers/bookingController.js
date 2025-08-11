@@ -95,66 +95,66 @@ export const createBooking = async (req, res) => {
         if (bookingStartTime < openTime || bookingEndTime > closeTime) {
             return res.status(400).json({
                 success: false,
-                message: `Booking time must be within operating hours: ${court.operatingHours.open} - ${court.operatingHours.close}`
+                message: `Booking time must be within operating hours: ${ court.operatingHours.open } - ${ court.operatingHours.close }`
             });
-        }
+    }
 
         // Check for overlapping bookings
         const overlappingBookings = await Booking.find({
-            courtId,
-            status: { $in: ['booked', 'completed'] },
-            $or: [
-                {
-                    startTime: { $lt: bookingEndTime },
-                    endTime: { $gt: bookingStartTime }
-                }
-            ]
-        });
+        courtId,
+        status: { $in: ['booked', 'completed'] },
+        $or: [
+            {
+                startTime: { $lt: bookingEndTime },
+                endTime: { $gt: bookingStartTime }
+            }
+        ]
+    });
 
-        if (overlappingBookings.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Court is not available for the selected time slot',
-                conflictingBookings: overlappingBookings.map(booking => ({
-                    startTime: booking.startTime,
-                    endTime: booking.endTime
-                }))
-            });
-        }
-
-        // Calculate price based on duration and court's price per hour
-        const durationInHours = (bookingEndTime - bookingStartTime) / (1000 * 60 * 60);
-        const totalPrice = Math.round(durationInHours * court.pricePerHour * 100) / 100; // Round to 2 decimal places
-
-        // Create booking
-        const booking = await Booking.create({
-            userId: req.user._id,
-            venueId,
-            courtId,
-            startTime: bookingStartTime,
-            endTime: bookingEndTime,
-            price: totalPrice,
-            paymentStatus
-        });
-
-        // Populate booking details for response
-        await booking.populate([
-            { path: 'userId', select: 'name email' },
-            { path: 'venueId', select: 'name address' },
-            { path: 'courtId', select: 'name sportType pricePerHour' }
-        ]);
-
-        res.status(201).json({
-            success: true,
-            message: 'Booking created successfully',
-            booking
-        });
-    } catch (error) {
-        res.status(500).json({
+    if (overlappingBookings.length > 0) {
+        return res.status(400).json({
             success: false,
-            message: error.message
+            message: 'Court is not available for the selected time slot',
+            conflictingBookings: overlappingBookings.map(booking => ({
+                startTime: booking.startTime,
+                endTime: booking.endTime
+            }))
         });
     }
+
+    // Calculate price based on duration and court's price per hour
+    const durationInHours = (bookingEndTime - bookingStartTime) / (1000 * 60 * 60);
+    const totalPrice = Math.round(durationInHours * court.pricePerHour * 100) / 100; // Round to 2 decimal places
+
+    // Create booking
+    const booking = await Booking.create({
+        userId: req.user._id,
+        venueId,
+        courtId,
+        startTime: bookingStartTime,
+        endTime: bookingEndTime,
+        price: totalPrice,
+        paymentStatus
+    });
+
+    // Populate booking details for response
+    await booking.populate([
+        { path: 'userId', select: 'name email' },
+        { path: 'venueId', select: 'name address' },
+        { path: 'courtId', select: 'name sportType pricePerHour' }
+    ]);
+
+    res.status(201).json({
+        success: true,
+        message: 'Booking created successfully',
+        booking
+    });
+} catch (error) {
+    res.status(500).json({
+        success: false,
+        message: error.message
+    });
+}
 };
 
 // @desc    Get user's bookings
