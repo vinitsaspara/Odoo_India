@@ -4,6 +4,7 @@ import venueRoutes from './venueRoutes.js';
 import courtRoutes from './courtRoutes.js';
 import bookingRoutes from './bookingRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import placeholderRoutes from './placeholderRoutes.js';
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ router.use('/venues', venueRoutes);
 router.use('/courts', courtRoutes);
 router.use('/bookings', bookingRoutes);
 router.use('/admin', adminRoutes);
+router.use('/', placeholderRoutes); // Placeholder images
 
 // Health check route for API
 router.get('/health', (req, res) => {

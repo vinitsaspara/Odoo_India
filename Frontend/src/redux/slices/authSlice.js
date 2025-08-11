@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api';
+import api, { handleApiError } from '../../utils/api.js';
+import { API_ENDPOINTS } from '../../config/api.js';
 
 // Initial state
 const initialState = {
@@ -17,22 +16,22 @@ export const loginUser = createAsyncThunk(
     'auth/login',
     async ({ email, password }, { rejectWithValue }) => {
         try {
-            const response = await axios.post(`${API_URL}/auth/login`, {
+            const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, {
                 email,
                 password,
             });
 
-            // Set token in axios defaults
+            // Set token in localStorage and axios defaults
             if (response.data.token) {
                 localStorage.setItem('token', response.data.token);
-                axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+                api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             }
 
             return response.data;
         } catch (error) {
-            return rejectWithValue(
-                error.response?.data?.message || 'Login failed'
-            );
+            console.error('Login error:', error);
+            const errorMessage = handleApiError(error);
+            return rejectWithValue(errorMessage);
         }
     }
 );
@@ -41,24 +40,24 @@ export const registerUser = createAsyncThunk(
     'auth/register',
     async ({ name, email, password, role }, { rejectWithValue }) => {
         try {
-            const response = await axios.post(`${API_URL}/auth/register`, {
+            const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, {
                 name,
                 email,
                 password,
                 role,
             });
 
-            // Set token in axios defaults
+            // Set token in localStorage and axios defaults
             if (response.data.token) {
                 localStorage.setItem('token', response.data.token);
-                axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+                api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             }
 
             return response.data;
         } catch (error) {
-            return rejectWithValue(
-                error.response?.data?.message || 'Registration failed'
-            );
+            console.error('Registration error:', error);
+            const errorMessage = handleApiError(error);
+            return rejectWithValue(errorMessage);
         }
     }
 );
@@ -67,12 +66,12 @@ export const getUserProfile = createAsyncThunk(
     'auth/profile',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`${API_URL}/auth/profile`);
+            const response = await api.get(API_ENDPOINTS.AUTH.PROFILE);
             return response.data;
         } catch (error) {
-            return rejectWithValue(
-                error.response?.data?.message || 'Failed to fetch profile'
-            );
+            console.error('Get profile error:', error);
+            const errorMessage = handleApiError(error);
+            return rejectWithValue(errorMessage);
         }
     }
 );
@@ -88,7 +87,7 @@ const authSlice = createSlice({
             state.isAuthenticated = false;
             state.error = null;
             localStorage.removeItem('token');
-            delete axios.defaults.headers.common['Authorization'];
+            delete api.defaults.headers.common['Authorization'];
         },
         clearError: (state) => {
             state.error = null;
@@ -101,7 +100,7 @@ const authSlice = createSlice({
 
             if (token) {
                 localStorage.setItem('token', token);
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             }
         },
     },

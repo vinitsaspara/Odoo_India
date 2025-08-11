@@ -13,7 +13,9 @@ import { useAuth } from "../hooks/useAuth";
 import Header from "../components/Header";
 import VenueCard from "../components/VenueCard";
 import SportCard from "../components/SportCard";
-import axios from "axios";
+import api, { handleApiError, makeAuthenticatedRequest } from "../utils/api.js";
+import { API_ENDPOINTS } from "../config/api.js";
+import { getSportPlaceholder } from "../utils/placeholderImages.js";
 
 const Home = () => {
   const { user, isAuthenticated } = useAuth();
@@ -25,33 +27,33 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSport, setFilterSport] = useState("");
+  const [error, setError] = useState("");
 
-  // Mock data for popular sports
+  // Mock data for popular sports with proper placeholder images
   const sportsData = [
     {
       name: "Football",
-      image: "https://via.placeholder.com/200x150/22c55e/ffffff?text=Football",
+      image: getSportPlaceholder("Football", 200, 150),
     },
     {
       name: "Basketball",
-      image:
-        "https://via.placeholder.com/200x150/f97316/ffffff?text=Basketball",
+      image: getSportPlaceholder("Basketball", 200, 150),
     },
     {
       name: "Tennis",
-      image: "https://via.placeholder.com/200x150/3b82f6/ffffff?text=Tennis",
+      image: getSportPlaceholder("Tennis", 200, 150),
     },
     {
       name: "Badminton",
-      image: "https://via.placeholder.com/200x150/ec4899/ffffff?text=Badminton",
+      image: getSportPlaceholder("Badminton", 200, 150),
     },
     {
       name: "Cricket",
-      image: "https://via.placeholder.com/200x150/8b5cf6/ffffff?text=Cricket",
+      image: getSportPlaceholder("Cricket", 200, 150),
     },
     {
       name: "Swimming",
-      image: "https://via.placeholder.com/200x150/06b6d4/ffffff?text=Swimming",
+      image: getSportPlaceholder("Swimming", 200, 150),
     },
   ];
 
@@ -63,14 +65,25 @@ const Home = () => {
 
   const fetchVenues = async () => {
     setIsLoading(true);
+    setError("");
+
     try {
-      const response = await axios.get("http://localhost:5000/api/venues");
+      // Try to fetch venues - this is usually a public endpoint
+      const response = await api.get(API_ENDPOINTS.VENUES.LIST);
+
       if (response.data.success) {
         setVenues(response.data.venues);
+      } else {
+        throw new Error("Failed to fetch venues");
       }
     } catch (error) {
       console.error("Error fetching venues:", error);
+
+      // Handle the error appropriately
+      const errorMessage = handleApiError(error, setError);
+
       // Fallback to mock data if API fails
+      console.log("Using mock data as fallback");
       setVenues(generateMockVenues());
     } finally {
       setIsLoading(false);
@@ -84,9 +97,7 @@ const Home = () => {
         _id: "1",
         name: "Sports Complex Arena",
         location: { address: "Satellite, Ahmedabad, Gujarat" },
-        images: [
-          "https://via.placeholder.com/300x200/3b82f6/ffffff?text=Sports+Arena",
-        ],
+        images: [getSportPlaceholder("Sports Arena", 300, 200)],
         rating: 4.5,
         amenities: ["Parking", "Cafeteria", "Locker Room"],
         sportsTypes: ["Football", "Basketball", "Tennis"],
@@ -97,9 +108,7 @@ const Home = () => {
         _id: "2",
         name: "Elite Sports Club",
         location: { address: "Bopal, Ahmedabad, Gujarat" },
-        images: [
-          "https://via.placeholder.com/300x200/22c55e/ffffff?text=Elite+Club",
-        ],
+        images: [getSportPlaceholder("Elite Club", 300, 200)],
         rating: 4.8,
         amenities: ["Swimming Pool", "Gym", "Spa"],
         sportsTypes: ["Swimming", "Tennis", "Badminton"],
@@ -110,9 +119,7 @@ const Home = () => {
         _id: "3",
         name: "Community Sports Hub",
         location: { address: "Maninagar, Ahmedabad, Gujarat" },
-        images: [
-          "https://via.placeholder.com/300x200/f97316/ffffff?text=Community+Hub",
-        ],
+        images: [getSportPlaceholder("Community Hub", 300, 200)],
         rating: 4.2,
         amenities: ["Parking", "Refreshments"],
         sportsTypes: ["Cricket", "Football"],
@@ -123,9 +130,7 @@ const Home = () => {
         _id: "4",
         name: "Premium Sports Center",
         location: { address: "Prahlad Nagar, Ahmedabad, Gujarat" },
-        images: [
-          "https://via.placeholder.com/300x200/8b5cf6/ffffff?text=Premium+Center",
-        ],
+        images: [getSportPlaceholder("Premium Center", 300, 200)],
         rating: 4.7,
         amenities: ["AC Rooms", "Pro Shop", "Coaching"],
         sportsTypes: ["Badminton", "Table Tennis", "Squash"],
@@ -261,6 +266,33 @@ const Home = () => {
             </button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-red-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-red-800 text-sm">{error}</p>
+                  <p className="text-red-600 text-xs mt-1">
+                    Showing cached venues instead.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[...Array(4)].map((_, index) => (
@@ -367,4 +399,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Home;

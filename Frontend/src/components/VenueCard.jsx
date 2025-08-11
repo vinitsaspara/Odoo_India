@@ -1,4 +1,8 @@
 import { Star, MapPin, Users, Calendar } from "lucide-react";
+import {
+  getVenuePlaceholder,
+  handleImageError,
+} from "../utils/placeholderImages.js";
 
 const VenueCard = ({ venue }) => {
   const {
@@ -18,12 +22,11 @@ const VenueCard = ({ venue }) => {
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={
-            images[0] ||
-            "https://via.placeholder.com/300x200/e2e8f0/64748b?text=Venue+Image"
-          }
-          alt={name}
+          src={images[0] || getVenuePlaceholder(name, 300, 200)}
+          alt={name || "Venue"}
           className="w-full h-full object-cover"
+          onError={(e) => handleImageError(e, `${name || "Venue"} Image`)}
+          loading="lazy"
         />
         <div className="absolute top-3 right-3">
           <span className="bg-white bg-opacity-90 backdrop-blur-sm px-2 py-1 rounded-full text-sm font-medium text-gray-800">

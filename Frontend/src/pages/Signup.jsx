@@ -17,9 +17,88 @@ const Signup = () => {
   const [profileImagePreview, setProfileImagePreview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
 
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Password strength validation function
+  const validatePassword = (password) => {
+    const errors = [];
+
+    if (password.length < 8) {
+      errors.push("Must be at least 8 characters long");
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      errors.push("Must contain at least one uppercase letter");
+    }
+
+    if (!/[a-z]/.test(password)) {
+      errors.push("Must contain at least one lowercase letter");
+    }
+
+    if (!/\d/.test(password)) {
+      errors.push("Must contain at least one number");
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push("Must contain at least one special character");
+    }
+
+    return errors;
+  };
+
+  // Real-time validation on input change
+  const validateField = (name, value) => {
+    const newErrors = { ...validationErrors };
+
+    switch (name) {
+      case "email":
+        if (value && !validateEmail(value)) {
+          newErrors.email = "Please enter a valid email address";
+        } else {
+          delete newErrors.email;
+        }
+        break;
+
+      case "password":
+        const passwordErrors = validatePassword(value);
+        if (passwordErrors.length > 0) {
+          newErrors.password = passwordErrors;
+        } else {
+          delete newErrors.password;
+        }
+        break;
+
+      case "confirmPassword":
+        if (value && value !== formData.password) {
+          newErrors.confirmPassword = "Passwords do not match";
+        } else {
+          delete newErrors.confirmPassword;
+        }
+        break;
+
+      case "name":
+        if (value && value.trim().length < 2) {
+          newErrors.name = "Name must be at least 2 characters long";
+        } else {
+          delete newErrors.name;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    setValidationErrors(newErrors);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,7 +106,11 @@ const Signup = () => {
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
+
+    // Real-time validation
+    validateField(name, value);
+
+    // Clear general error when user starts typing
     if (error) setError("");
   };
 
@@ -48,23 +131,52 @@ const Signup = () => {
     setIsLoading(true);
     setError("");
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
+    // Comprehensive validation before submission
+    const errors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      errors.name = "Name is required";
+    } else if (formData.name.trim().length < 2) {
+      errors.name = "Name must be at least 2 characters long";
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    // Email validation
+    if (!formData.email) {
+      errors.email = "Email is required";
+    } else if (!validateEmail(formData.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    // Password validation
+    if (!formData.password) {
+      errors.password = ["Password is required"];
+    } else {
+      const passwordErrors = validatePassword(formData.password);
+      if (passwordErrors.length > 0) {
+        errors.password = passwordErrors;
+      }
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+
+    // If there are validation errors, show them and stop submission
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setError("Please fix the errors below before submitting");
       setIsLoading(false);
       return;
     }
 
     try {
       const registrationData = {
-        name: formData.name,
-        email: formData.email,
+        name: formData.name.trim(),
+        email: formData.email.toLowerCase().trim(),
         password: formData.password,
         role: formData.role,
       };
@@ -231,9 +343,18 @@ const Signup = () => {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
+                className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
+                  validationErrors.name
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 placeholder="Enter your full name"
               />
+              {validationErrors.name && (
+                <p className="mt-1 text-sm text-red-600">
+                  {validationErrors.name}
+                </p>
+              )}
             </div>
 
             {/* Email Field */}
@@ -251,9 +372,18 @@ const Signup = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
+                className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
+                  validationErrors.email
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 placeholder="Enter your email"
               />
+              {validationErrors.email && (
+                <p className="mt-1 text-sm text-red-600">
+                  {validationErrors.email}
+                </p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -272,7 +402,11 @@ const Signup = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
+                  className={`w-full px-4 py-3 pr-12 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
+                    validationErrors.password
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                   placeholder="Enter your password"
                 />
                 <button
@@ -287,6 +421,18 @@ const Signup = () => {
                   )}
                 </button>
               </div>
+              {validationErrors.password && (
+                <div className="mt-1">
+                  <p className="text-sm text-red-600 mb-1">
+                    Password requirements:
+                  </p>
+                  <ul className="text-xs text-red-600 list-disc list-inside space-y-1">
+                    {validationErrors.password.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Confirm Password Field */}
@@ -305,7 +451,11 @@ const Signup = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
+                  className={`w-full px-4 py-3 pr-12 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 ${
+                    validationErrors.confirmPassword
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                   placeholder="Confirm your password"
                 />
                 <button
@@ -320,6 +470,11 @@ const Signup = () => {
                   )}
                 </button>
               </div>
+              {validationErrors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">
+                  {validationErrors.confirmPassword}
+                </p>
+              )}
             </div>
 
             {/* Sign Up Button */}
