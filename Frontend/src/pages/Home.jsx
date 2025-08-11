@@ -260,7 +260,10 @@ const Home = () => {
                 Discover the best sports venues in your area
               </p>
             </div>
-            <button className="flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200">
+            <button
+              onClick={() => navigate("/venues")}
+              className="flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200"
+            >
               See all venues
               <ArrowRight className="ml-2 h-5 w-5" />
             </button>

@@ -1,10 +1,13 @@
 import { Star, MapPin, Users, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   getVenuePlaceholder,
   handleImageError,
 } from "../utils/placeholderImages.js";
 
 const VenueCard = ({ venue }) => {
+  const navigate = useNavigate();
+  
   const {
     _id,
     name,
@@ -16,6 +19,10 @@ const VenueCard = ({ venue }) => {
     priceRange,
     totalCourts = 0,
   } = venue;
+
+  const handleViewDetails = () => {
+    navigate(`/venues/${_id}`);
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:scale-105">
@@ -97,7 +104,10 @@ const VenueCard = ({ venue }) => {
         )}
 
         {/* Action Button */}
-        <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105">
+        <button 
+          onClick={handleViewDetails}
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
+        >
           View Details
         </button>
       </div>

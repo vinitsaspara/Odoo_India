@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import { Login, Signup, Home } from "./pages";
+import VenuesList from "./pages/VenuesList";
+import VenueDetails from "./pages/VenueDetails";
 import "./App.css";
 
 function App() {
@@ -13,6 +15,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/venues" element={<VenuesList />} />
+          <Route path="/venues/:id" element={<VenueDetails />} />
         </Routes>
       </div>
     </Router>

@@ -57,7 +57,14 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-6">
+            <button
+              onClick={() => navigate("/venues")}
+              className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+            >
+              Browse Venues
+            </button>
+
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <span className="text-gray-700">Welcome, {user?.name}</span>
@@ -132,6 +139,17 @@ const Header = () => {
                   </button>
                 </div>
               </form>
+
+              {/* Navigation Links */}
+              <button
+                onClick={() => {
+                  navigate("/venues");
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full text-left px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors duration-200 mb-2"
+              >
+                Browse Venues
+              </button>
 
               {isAuthenticated ? (
                 <div className="space-y-2">
