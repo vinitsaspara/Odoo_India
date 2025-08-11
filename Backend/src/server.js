@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-import authRoutes from './routes/authRoutes.js';
+import apiRoutes from './routes/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -26,17 +26,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
-
-// API Health check
-app.get('/api/health', (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: 'API Health Check Successful',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-    });
-});
+app.use('/api', apiRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

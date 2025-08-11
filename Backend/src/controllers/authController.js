@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -13,10 +14,35 @@ const generateToken = (id) => {
 // @access  Public
 export const registerUser = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, role } = req.body;
+
+        // Validate input
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide name, email, and password'
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a valid email address'
+            });
+        }
+
+        // Validate password length
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters long'
+            });
+        }
 
         // Check if user already exists
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -24,11 +50,12 @@ export const registerUser = async (req, res) => {
             });
         }
 
-        // Create user
+        // Create user (password will be hashed by pre-save middleware)
         const user = await User.create({
-            name,
-            email,
-            password
+            name: name.trim(),
+            email: email.toLowerCase().trim(),
+            passwordHash: password,
+            role: role || 'user'
         });
 
         // Generate token
@@ -42,7 +69,9 @@ export const registerUser = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                avatarUrl: user.avatarUrl,
+                createdAt: user.createdAt
             }
         });
     } catch (error) {
@@ -60,7 +89,7 @@ export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Check if email and password are provided
+        // Validate input
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
@@ -68,10 +97,19 @@ export const loginUser = async (req, res) => {
             });
         }
 
-        // Find user and include password field
-        const user = await User.findOne({ email }).select('+password');
+        // Find user and include passwordHash field
+        const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+passwordHash');
 
-        if (!user || !(await user.comparePassword(password))) {
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password'
+            });
+        }
+
+        // Check password
+        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+        if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid email or password'
@@ -89,7 +127,9 @@ export const loginUser = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                avatarUrl: user.avatarUrl,
+                createdAt: user.createdAt
             }
         });
     } catch (error) {
@@ -105,11 +145,10 @@ export const loginUser = async (req, res) => {
 // @access  Private
 export const getUserProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
-
+        // req.user is already populated by auth middleware
         res.status(200).json({
             success: true,
-            user
+            user: req.user
         });
     } catch (error) {
         res.status(500).json({
