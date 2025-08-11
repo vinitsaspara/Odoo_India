@@ -13,7 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import Header from "../components/Header";
 import VenueCard from "../components/VenueCard";
 import SportCard from "../components/SportCard";
-import api, { handleApiError, makeAuthenticatedRequest } from "../utils/api.js";
+import api, { handleApiError } from "../utils/api.js";
 import { API_ENDPOINTS } from "../config/api.js";
 import { getSportPlaceholder } from "../utils/placeholderImages.js";
 

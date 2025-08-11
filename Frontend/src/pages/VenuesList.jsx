@@ -149,14 +149,41 @@ const VenuesList = () => {
     setError("");
 
     try {
-      // Skip API call and use mock data directly
-      console.log("Using mock data for venues");
-      setVenues(generateMockVenues());
-      setTotalVenues(24);
-      setTotalPages(Math.ceil(24 / venuesPerPage));
+      // Build query parameters
+      const params = new URLSearchParams();
+
+      if (filters.search) params.append("search", filters.search);
+      if (filters.sport && filters.sport !== "All Sports")
+        params.append("sport", filters.sport);
+      if (filters.location && filters.location !== "All Locations")
+        params.append("location", filters.location);
+      if (filters.minPrice) params.append("minPrice", filters.minPrice);
+      if (filters.maxPrice) params.append("maxPrice", filters.maxPrice);
+      if (filters.rating) params.append("rating", filters.rating);
+      if (filters.amenities.length > 0)
+        params.append("amenities", filters.amenities.join(","));
+
+      params.append("page", currentPage.toString());
+      params.append("limit", venuesPerPage.toString());
+      params.append("sortBy", sortBy);
+      params.append("sortOrder", sortOrder);
+
+      // Make API call
+      console.log("Fetching venues from API...");
+      const response = await api.get(`/venues?${params.toString()}`);
+
+      setVenues(response.data.venues || []);
+      setTotalVenues(response.data.totalVenues || 0);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
-      console.error("Error generating mock venues:", error);
-      setError("Failed to load venues");
+      console.error("Error fetching venues:", error);
+
+      // Fallback to mock data if API fails
+      console.log("API failed, falling back to mock data...");
+      const mockData = generateMockVenues();
+      setVenues(mockData);
+
+      setError("API temporarily unavailable. Showing sample data.");
     } finally {
       setIsLoading(false);
     }

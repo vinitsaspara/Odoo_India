@@ -1,45 +1,29 @@
 import axios from 'axios';
-import { API_CONFIG, HTTP_STATUS, ERROR_MESSAGES } from '../config/api.js';
 
-// Create axios instance with environment-based URL
+// Get base URL from environment variables or use default
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Create axios instance with base configuration
 const api = axios.create({
-    baseURL: API_CONFIG.BASE_URL,
-    timeout: API_CONFIG.TIMEOUT,
+    baseURL: BASE_URL,
+    timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Utility function to check if user is authenticated
-const isAuthenticated = () => {
-    const token = localStorage.getItem('token');
-    return !!token;
-};
-
-// Utility function to redirect to login
-const redirectToLogin = () => {
-    // Clear any existing token
-    localStorage.removeItem('token');
-    delete api.defaults.headers.common['Authorization'];
-
-    // Only redirect if not already on auth pages
-    const currentPath = window.location.pathname;
-    if (!['/login', '/signup'].includes(currentPath)) {
-        window.location.href = '/login';
-    }
-};
-
-// Request interceptor to add auth token
+// Request interceptor to add JWT token from localStorage
 api.interceptors.request.use(
     (config) => {
+        // Get JWT token from localStorage
         const token = localStorage.getItem('token');
+
+        // Add Authorization header if token exists
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // Add retry configuration for this request
-        config.retryAttempts = config.retryAttempts || 0;
-
+        console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
         return config;
     },
     (error) => {
@@ -48,79 +32,112 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling and token management
 api.interceptors.response.use(
     (response) => {
         return response;
     },
-    async (error) => {
-        const originalRequest = error.config;
-
+    (error) => {
         // Handle network errors
         if (!error.response) {
             console.error('Network error:', error.message);
-            const networkError = new Error(ERROR_MESSAGES.NETWORK_ERROR);
-            networkError.isNetworkError = true;
-            return Promise.reject(networkError);
+            return Promise.reject(new Error('Network error. Please check your connection.'));
         }
 
         const { status } = error.response;
 
-        // Handle different error types
-        switch (status) {
-            case HTTP_STATUS.UNAUTHORIZED:
-                console.warn('Unauthorized request, redirecting to login');
-                redirectToLogin();
-                return Promise.reject(new Error(ERROR_MESSAGES.UNAUTHORIZED));
+        // Handle authentication errors
+        if (status === 401) {
+            console.warn('Unauthorized request - clearing token and redirecting to login');
 
-            case HTTP_STATUS.FORBIDDEN:
-                console.warn('Forbidden request');
-                return Promise.reject(new Error(ERROR_MESSAGES.FORBIDDEN));
+            // Clear token from localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
 
-            case HTTP_STATUS.NOT_FOUND:
-                console.warn('Resource not found');
-                return Promise.reject(new Error(ERROR_MESSAGES.NOT_FOUND));
+            // Clear authorization header
+            delete api.defaults.headers.common['Authorization'];
 
-            case HTTP_STATUS.INTERNAL_SERVER_ERROR:
-                console.error('Server error');
-                return Promise.reject(new Error(ERROR_MESSAGES.SERVER_ERROR));
+            // Redirect to login page (avoid redirect if already on auth pages)
+            const currentPath = window.location.pathname;
+            if (!['/login', '/signup'].includes(currentPath)) {
+                window.location.href = '/login';
+            }
 
-            default:
-                // Handle other errors with custom message if available
-                const errorMessage = error.response?.data?.message || ERROR_MESSAGES.GENERIC_ERROR;
-                return Promise.reject(new Error(errorMessage));
+            return Promise.reject(new Error('Session expired. Please login again.'));
         }
+
+        // Handle other HTTP errors
+        const errorMessage = error.response?.data?.message ||
+            error.response?.data?.error ||
+            `Request failed with status ${status}`;
+
+        console.error(`API Error (${status}):`, errorMessage);
+        return Promise.reject(new Error(errorMessage));
     }
 );
 
-// Utility function to make authenticated requests
-export const makeAuthenticatedRequest = async (requestFunction) => {
-    if (!isAuthenticated()) {
-        console.warn('Attempted to make authenticated request without token');
-        redirectToLogin();
-        throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
-    }
-
-    try {
-        return await requestFunction();
-    } catch (error) {
-        console.error('Authenticated request failed:', error);
-        throw error;
+// Utility function to set token (useful for login)
+export const setAuthToken = (token) => {
+    if (token) {
+        localStorage.setItem('token', token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+        localStorage.removeItem('token');
+        delete api.defaults.headers.common['Authorization'];
     }
 };
 
+// Utility function to check if user is authenticated
+export const isAuthenticated = () => {
+    const token = localStorage.getItem('token');
+    return !!token;
+};
+
+// Utility function to get current token
+export const getToken = () => {
+    return localStorage.getItem('token');
+};
+
+// Utility function to clear authentication
+export const clearAuth = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    delete api.defaults.headers.common['Authorization'];
+};
+
 // Utility function to handle API errors in components
-export const handleApiError = (error, setError) => {
+export const handleApiError = (error, setError = null) => {
     console.error('API Error:', error);
 
-    let errorMessage = ERROR_MESSAGES.GENERIC_ERROR;
+    let errorMessage = 'An unexpected error occurred';
 
-    if (error.isNetworkError) {
-        errorMessage = ERROR_MESSAGES.NETWORK_ERROR;
-    } else if (error.message) {
+    if (error.message) {
         errorMessage = error.message;
+    } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+    } else if (error.response?.status) {
+        switch (error.response.status) {
+            case 400:
+                errorMessage = 'Invalid request. Please check your input.';
+                break;
+            case 401:
+                errorMessage = 'Please login to continue.';
+                break;
+            case 403:
+                errorMessage = 'You do not have permission to perform this action.';
+                break;
+            case 404:
+                errorMessage = 'Resource not found.';
+                break;
+            case 500:
+                errorMessage = 'Server error. Please try again later.';
+                break;
+            default:
+                errorMessage = `Request failed with status ${error.response.status}`;
+        }
     }
 
+    // Set error in component state if setError function is provided
     if (setError && typeof setError === 'function') {
         setError(errorMessage);
     }
@@ -128,5 +145,5 @@ export const handleApiError = (error, setError) => {
     return errorMessage;
 };
 
-// Export the configured axios instance
+// Export configured axios instance as default
 export default api;

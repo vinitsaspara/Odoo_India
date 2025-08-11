@@ -4,7 +4,8 @@ import {
     registerUser,
     logout,
     clearError,
-    getUserProfile
+    getUserProfile,
+    setCredentials
 } from '../redux/slices/authSlice';
 
 export const useAuth = () => {
@@ -48,6 +49,10 @@ export const useAuth = () => {
         dispatch(clearError());
     };
 
+    const updateUser = (userData) => {
+        dispatch(setCredentials({ user: userData, token }));
+    };
+
     return {
         user,
         token,
@@ -59,5 +64,6 @@ export const useAuth = () => {
         logout: logoutUser,
         clearError: clearAuthError,
         getProfile,
+        updateUser,
     };
 };
