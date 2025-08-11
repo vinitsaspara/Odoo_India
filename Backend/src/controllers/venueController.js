@@ -118,7 +118,7 @@ export const getVenues = async (req, res) => {
     try {
         const {
             sport,
-            status = 'Active',
+            status,
             ownerId,
             city,
             state,
@@ -138,7 +138,8 @@ export const getVenues = async (req, res) => {
         // Only show approved venues for public access
         if (!ownerId) {
             filter.status = 'Active';
-        } else if (status) {
+        } else if (status && status !== 'All') {
+            // For owners, only apply status filter if explicitly provided
             filter.status = status;
         }
 

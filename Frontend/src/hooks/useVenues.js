@@ -4,6 +4,8 @@ import {
     fetchOwnerVenues,
     fetchAllVenues,
     updateVenueStatus,
+    approveVenue,
+    rejectVenue,
     deleteVenue,
     clearError,
     clearVenues,
@@ -51,6 +53,26 @@ export const useVenues = () => {
             await dispatch(updateVenueStatus({ venueId, status })).unwrap();
         } catch (error) {
             console.error('Error updating venue status:', error);
+            throw error;
+        }
+    }, [dispatch]);
+
+    // Approve venue (for admin)
+    const approveVenueById = useCallback(async (venueId) => {
+        try {
+            await dispatch(approveVenue(venueId)).unwrap();
+        } catch (error) {
+            console.error('Error approving venue:', error);
+            throw error;
+        }
+    }, [dispatch]);
+
+    // Reject venue (for admin)
+    const rejectVenueById = useCallback(async (venueId, reason) => {
+        try {
+            await dispatch(rejectVenue({ venueId, reason })).unwrap();
+        } catch (error) {
+            console.error('Error rejecting venue:', error);
             throw error;
         }
     }, [dispatch]);
@@ -103,6 +125,8 @@ export const useVenues = () => {
         getAllVenues,
         getUserVenues,
         updateStatus,
+        approveVenueById,
+        rejectVenueById,
         removeVenue,
         clearVenueError,
         clearAllVenues,

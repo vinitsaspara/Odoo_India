@@ -402,31 +402,31 @@ const VenueDetails = () => {
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                      <span className="font-medium">{venue.rating}</span>
+                      <span className="font-medium">{venue.rating || 0}</span>
                       <span className="ml-1">
-                        ({venue.totalReviews} reviews)
+                        ({venue.totalReviews || 0} reviews)
                       </span>
                     </div>
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
-                      <span>{venue.location.address}</span>
+                      <span>{venue.address || "Address not available"}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <p className="text-gray-700 mb-6">{venue.description}</p>
+              <p className="text-gray-700 mb-6">{venue.description || "No description available"}</p>
 
               {/* Contact Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="flex items-center">
                   <Phone className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-gray-700">{venue.contact.phone}</span>
+                  <span className="text-gray-700">{venue.phone || venue.contact?.phone || "Phone not available"}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-5 w-5 text-gray-400 mr-3" />
                   <span className="text-gray-700">
-                    {venue.operatingHours.weekdays}
+                    {venue.operatingHours?.weekdays || "Operating hours not available"}
                   </span>
                 </div>
               </div>
@@ -437,7 +437,7 @@ const VenueDetails = () => {
                   Available Sports
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {venue.sportsTypes.map((sport, index) => (
+                  {(venue.sportsTypes || venue.sportTypes || []).map((sport, index) => (
                     <span
                       key={index}
                       className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
@@ -454,7 +454,7 @@ const VenueDetails = () => {
                   Amenities
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {venue.amenities.map((amenity, index) => {
+                  {(venue.amenities || []).map((amenity, index) => {
                     const IconComponent = amenityIcons[amenity] || Users;
                     return (
                       <div
@@ -476,7 +476,7 @@ const VenueDetails = () => {
                 Available Courts
               </h3>
               <div className="space-y-4">
-                {venue.courts.map((court) => (
+                {(venue.courts || []).map((court) => (
                   <div
                     key={court._id}
                     className="border border-gray-200 rounded-lg p-4"
@@ -496,7 +496,7 @@ const VenueDetails = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {court.features.map((feature, index) => (
+                      {(court.features || []).map((feature, index) => (
                         <span
                           key={index}
                           className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
@@ -530,17 +530,20 @@ const VenueDetails = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Price Range:</span>
                   <span className="font-medium">
-                    ₹{venue.priceRange.min} - ₹{venue.priceRange.max}/hr
+                    {venue.priceRange ? 
+                      `₹${venue.priceRange.min} - ₹${venue.priceRange.max}/hr` : 
+                      "Price not available"
+                    }
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Courts:</span>
-                  <span className="font-medium">{venue.courts.length}</span>
+                  <span className="font-medium">{(venue.courts || []).length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Operating Hours:</span>
                   <span className="font-medium">
-                    {venue.operatingHours.weekdays}
+                    {venue.operatingHours?.weekdays || "Operating hours not available"}
                   </span>
                 </div>
               </div>
@@ -548,9 +551,9 @@ const VenueDetails = () => {
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h4 className="font-medium text-gray-900 mb-2">Policies</h4>
                 <div className="space-y-2 text-xs text-gray-600">
-                  <p>• {venue.policies.cancellation}</p>
-                  <p>• {venue.policies.payment}</p>
-                  <p>• {venue.policies.equipment}</p>
+                  <p>• {venue.policies?.cancellation || venue.cancellationPolicy || "Cancellation policy not available"}</p>
+                  <p>• {venue.policies?.payment || "Payment policy not available"}</p>
+                  <p>• {venue.policies?.equipment || "Equipment policy not available"}</p>
                 </div>
               </div>
             </div>

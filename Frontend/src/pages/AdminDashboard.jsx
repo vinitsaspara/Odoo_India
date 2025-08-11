@@ -36,6 +36,8 @@ const AdminDashboard = () => {
     pagination,
     getAllVenues,
     updateStatus,
+    approveVenueById,
+    rejectVenueById,
     clearVenueError,
   } = useVenues();
 
@@ -166,10 +168,13 @@ const AdminDashboard = () => {
   const handleApproveVenue = async (venueId) => {
     setProcessingVenue(venueId);
     try {
-      await updateStatus(venueId, "Active");
+      await approveVenueById(venueId);
+
+      // Refresh the venues list to show updated data
+      await getAllVenues({ page: 1, limit: 100 });
 
       // Add to recent activity
-      const venue = pendingVenues.find((v) => v._id === venueId);
+      const venue = allVenues.find((v) => v._id === venueId);
       setRecentActivity((prev) => [
         {
           _id: `activity-${Date.now()}`,
@@ -190,10 +195,13 @@ const AdminDashboard = () => {
   const handleRejectVenue = async (venueId, reason) => {
     setProcessingVenue(venueId);
     try {
-      await updateStatus(venueId, "Rejected");
+      await rejectVenueById(venueId, reason);
+
+      // Refresh the venues list to show updated data
+      await getAllVenues({ page: 1, limit: 100 });
 
       // Add to recent activity
-      const venue = pendingVenues.find((v) => v._id === venueId);
+      const venue = allVenues.find((v) => v._id === venueId);
       setRecentActivity((prev) => [
         {
           _id: `activity-${Date.now()}`,
@@ -212,7 +220,7 @@ const AdminDashboard = () => {
   };
 
   const handleViewVenue = (venueId) => {
-    navigate(`/admin/venues/${venueId}`);
+    navigate(`/venues/${venueId}`);
   };
 
   const formatCurrency = (amount) => {

@@ -34,7 +34,7 @@ export const API_ENDPOINTS = {
     // Admin endpoints
     ADMIN: {
         VENUES: '/admin/venues',
-        UPDATE_VENUE_STATUS: '/admin/venues',
+        UPDATE_VENUE_STATUS: (id) => `/admin/venues/${id}/status`,
         APPROVE_VENUE: (id) => `/admin/venues/${id}/approve`,
         REJECT_VENUE: (id) => `/admin/venues/${id}/reject`,
         STATS: '/admin/stats',

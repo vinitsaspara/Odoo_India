@@ -50,10 +50,38 @@ export const updateVenueStatus = createAsyncThunk(
     'venue/updateVenueStatus',
     async ({ venueId, status }, { rejectWithValue }) => {
         try {
-            const response = await api.put(`${API_ENDPOINTS.ADMIN.UPDATE_VENUE_STATUS}/${venueId}`, { status });
+            const response = await api.patch(API_ENDPOINTS.ADMIN.UPDATE_VENUE_STATUS(venueId), { status });
             return { venueId, status, updatedVenue: response.data.venue };
         } catch (error) {
             console.error('Update venue status error:', error);
+            const errorMessage = handleApiError(error);
+            return rejectWithValue(errorMessage);
+        }
+    }
+);
+
+export const approveVenue = createAsyncThunk(
+    'venue/approveVenue',
+    async (venueId, { rejectWithValue }) => {
+        try {
+            const response = await api.patch(API_ENDPOINTS.ADMIN.APPROVE_VENUE(venueId));
+            return { venueId, updatedVenue: response.data.venue };
+        } catch (error) {
+            console.error('Approve venue error:', error);
+            const errorMessage = handleApiError(error);
+            return rejectWithValue(errorMessage);
+        }
+    }
+);
+
+export const rejectVenue = createAsyncThunk(
+    'venue/rejectVenue',
+    async ({ venueId, reason }, { rejectWithValue }) => {
+        try {
+            const response = await api.patch(API_ENDPOINTS.ADMIN.REJECT_VENUE(venueId), { reason });
+            return { venueId, updatedVenue: response.data.venue };
+        } catch (error) {
+            console.error('Reject venue error:', error);
             const errorMessage = handleApiError(error);
             return rejectWithValue(errorMessage);
         }
@@ -123,7 +151,7 @@ const venueSlice = createSlice({
             .addCase(fetchAllVenues.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.allVenues = action.payload.venues || [];
-                state.pendingVenues = (action.payload.venues || []).filter(venue => venue.status === 'pending');
+                state.pendingVenues = (action.payload.venues || []).filter(venue => venue.status === 'Pending Approval');
                 state.pagination = {
                     currentPage: action.payload.currentPage || 1,
                     totalPages: action.payload.totalPages || 1,
@@ -154,14 +182,82 @@ const venueSlice = createSlice({
                     state.allVenues[allVenueIndex].status = status;
                 }
 
+                // Also update in venues array (for owner dashboard)
+                const venueIndex = state.venues.findIndex(venue => venue._id === venueId);
+                if (venueIndex !== -1) {
+                    state.venues[venueIndex].status = status;
+                }
+
                 // Update pendingVenues (remove if no longer pending)
-                if (status !== 'pending') {
+                if (status !== 'Pending Approval') {
                     state.pendingVenues = state.pendingVenues.filter(venue => venue._id !== venueId);
                 }
 
                 state.error = null;
             })
             .addCase(updateVenueStatus.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
+
+            // Approve Venue
+            .addCase(approveVenue.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(approveVenue.fulfilled, (state, action) => {
+                state.isLoading = false;
+                const { venueId, updatedVenue } = action.payload;
+
+                // Update in allVenues with the updated venue data
+                const allVenueIndex = state.allVenues.findIndex(venue => venue._id === venueId);
+                if (allVenueIndex !== -1) {
+                    state.allVenues[allVenueIndex] = updatedVenue;
+                }
+
+                // Also update in venues array (for owner dashboard)
+                const venueIndex = state.venues.findIndex(venue => venue._id === venueId);
+                if (venueIndex !== -1) {
+                    state.venues[venueIndex] = updatedVenue;
+                }
+
+                // Remove from pendingVenues
+                state.pendingVenues = state.pendingVenues.filter(venue => venue._id !== venueId);
+
+                state.error = null;
+            })
+            .addCase(approveVenue.rejected, (state, action) => {
+                state.isLoading = false;
+                state.error = action.payload;
+            })
+
+            // Reject Venue
+            .addCase(rejectVenue.pending, (state) => {
+                state.isLoading = true;
+                state.error = null;
+            })
+            .addCase(rejectVenue.fulfilled, (state, action) => {
+                state.isLoading = false;
+                const { venueId, updatedVenue } = action.payload;
+
+                // Update in allVenues with the updated venue data
+                const allVenueIndex = state.allVenues.findIndex(venue => venue._id === venueId);
+                if (allVenueIndex !== -1) {
+                    state.allVenues[allVenueIndex] = updatedVenue;
+                }
+
+                // Also update in venues array (for owner dashboard)
+                const venueIndex = state.venues.findIndex(venue => venue._id === venueId);
+                if (venueIndex !== -1) {
+                    state.venues[venueIndex] = updatedVenue;
+                }
+
+                // Remove from pendingVenues
+                state.pendingVenues = state.pendingVenues.filter(venue => venue._id !== venueId);
+
+                state.error = null;
+            })
+            .addCase(rejectVenue.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
             })
