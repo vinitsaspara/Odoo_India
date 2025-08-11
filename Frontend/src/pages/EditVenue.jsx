@@ -25,12 +25,12 @@ import api from "../utils/api";
 const EditVenue = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [originalData, setOriginalData] = useState(null);
-  
+
   // Form state (same structure as AddVenue)
   const [venueData, setVenueData] = useState({
     name: "",
@@ -70,8 +70,16 @@ const EditVenue = () => {
 
   // Sport types options
   const sportTypesOptions = [
-    "Badminton", "Tennis", "Cricket", "Football", "Basketball", 
-    "Squash", "Table Tennis", "Volleyball", "Swimming", "Gym"
+    "Badminton",
+    "Tennis",
+    "Cricket",
+    "Football",
+    "Basketball",
+    "Squash",
+    "Table Tennis",
+    "Volleyball",
+    "Swimming",
+    "Gym",
   ];
 
   // Available amenities
@@ -87,10 +95,22 @@ const EditVenue = () => {
   ];
 
   const steps = [
-    { id: 1, title: "Basic Information", description: "Venue details and location" },
+    {
+      id: 1,
+      title: "Basic Information",
+      description: "Venue details and location",
+    },
     { id: 2, title: "Courts & Pricing", description: "Edit courts and prices" },
-    { id: 3, title: "Amenities & Hours", description: "Facilities and operating hours" },
-    { id: 4, title: "Images & Policies", description: "Update images and policies" },
+    {
+      id: 3,
+      title: "Amenities & Hours",
+      description: "Facilities and operating hours",
+    },
+    {
+      id: 4,
+      title: "Images & Policies",
+      description: "Update images and policies",
+    },
   ];
 
   useEffect(() => {
@@ -99,15 +119,15 @@ const EditVenue = () => {
 
   const fetchVenueData = async () => {
     setIsLoading(true);
-    
+
     try {
-      console.log('Fetching venue data for edit:', id);
-      
+      console.log("Fetching venue data for edit:", id);
+
       try {
         const response = await api.get(`/owner/venues/${id}`);
         const venue = response.data.venue;
-        console.log('Venue data fetched from API:', venue);
-        
+        console.log("Venue data fetched from API:", venue);
+
         // Set the venue data
         setVenueData({
           name: venue.name || "",
@@ -134,13 +154,12 @@ const EditVenue = () => {
           existingImages: venue.images || [],
           existingCoverImage: venue.coverImage || null,
         });
-        
+
         setOriginalData(venue);
-        
       } catch (apiError) {
-        console.error('API fetch failed:', apiError);
-        console.log('Using mock venue data...');
-        
+        console.error("API fetch failed:", apiError);
+        console.log("Using mock venue data...");
+
         // Mock venue data for editing
         const mockVenue = {
           _id: id,
@@ -191,7 +210,7 @@ const EditVenue = () => {
           images: ["/api/placeholder/400/300"],
           coverImage: "/api/placeholder/600/400",
         };
-        
+
         setVenueData({
           ...mockVenue,
           images: [],
@@ -199,14 +218,13 @@ const EditVenue = () => {
           existingImages: mockVenue.images,
           existingCoverImage: mockVenue.coverImage,
         });
-        
+
         setOriginalData(mockVenue);
       }
-      
     } catch (error) {
-      console.error('Error fetching venue:', error);
-      alert('Failed to load venue data');
-      navigate('/owner/dashboard');
+      console.error("Error fetching venue:", error);
+      alert("Failed to load venue data");
+      navigate("/owner/dashboard");
     } finally {
       setIsLoading(false);
     }
@@ -214,48 +232,48 @@ const EditVenue = () => {
 
   // All the handler functions from AddVenue (same logic)
   const handleInputChange = (field, value) => {
-    setVenueData(prev => ({
+    setVenueData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ""
+        [field]: "",
       }));
     }
   };
 
   const handleSportTypeToggle = (sport) => {
-    setVenueData(prev => ({
+    setVenueData((prev) => ({
       ...prev,
       sportTypes: prev.sportTypes.includes(sport)
-        ? prev.sportTypes.filter(s => s !== sport)
-        : [...prev.sportTypes, sport]
+        ? prev.sportTypes.filter((s) => s !== sport)
+        : [...prev.sportTypes, sport],
     }));
   };
 
   const handleAmenityToggle = (amenityId) => {
-    setVenueData(prev => ({
+    setVenueData((prev) => ({
       ...prev,
       amenities: prev.amenities.includes(amenityId)
-        ? prev.amenities.filter(a => a !== amenityId)
-        : [...prev.amenities, amenityId]
+        ? prev.amenities.filter((a) => a !== amenityId)
+        : [...prev.amenities, amenityId],
     }));
   };
 
   const handleCourtChange = (index, field, value) => {
-    setVenueData(prev => ({
+    setVenueData((prev) => ({
       ...prev,
-      courts: prev.courts.map((court, i) => 
+      courts: prev.courts.map((court, i) =>
         i === index ? { ...court, [field]: value } : court
-      )
+      ),
     }));
   };
 
   const addCourt = () => {
-    setVenueData(prev => ({
+    setVenueData((prev) => ({
       ...prev,
       courts: [
         ...prev.courts,
@@ -266,47 +284,47 @@ const EditVenue = () => {
           dimensions: "",
           surface: "",
           isIndoor: true,
-        }
+        },
       ],
-      totalCourts: prev.totalCourts + 1
+      totalCourts: prev.totalCourts + 1,
     }));
   };
 
   const removeCourt = (index) => {
     if (venueData.courts.length > 1) {
-      setVenueData(prev => ({
+      setVenueData((prev) => ({
         ...prev,
         courts: prev.courts.filter((_, i) => i !== index),
-        totalCourts: prev.totalCourts - 1
+        totalCourts: prev.totalCourts - 1,
       }));
     }
   };
 
   const handleOperatingHoursChange = (day, field, value) => {
-    setVenueData(prev => ({
+    setVenueData((prev) => ({
       ...prev,
       operatingHours: {
         ...prev.operatingHours,
         [day]: {
           ...prev.operatingHours[day],
-          [field]: value
-        }
-      }
+          [field]: value,
+        },
+      },
     }));
   };
 
   const handleImageUpload = (e, isCover = false) => {
     const files = Array.from(e.target.files);
-    
+
     if (isCover && files.length > 0) {
-      setVenueData(prev => ({
+      setVenueData((prev) => ({
         ...prev,
-        coverImage: files[0]
+        coverImage: files[0],
       }));
     } else {
-      setVenueData(prev => ({
+      setVenueData((prev) => ({
         ...prev,
-        images: [...prev.images, ...files].slice(0, 10)
+        images: [...prev.images, ...files].slice(0, 10),
       }));
     }
   };
@@ -314,26 +332,26 @@ const EditVenue = () => {
   const removeImage = (index, isCover = false, isExisting = false) => {
     if (isCover) {
       if (isExisting) {
-        setVenueData(prev => ({
+        setVenueData((prev) => ({
           ...prev,
-          existingCoverImage: null
+          existingCoverImage: null,
         }));
       } else {
-        setVenueData(prev => ({
+        setVenueData((prev) => ({
           ...prev,
-          coverImage: null
+          coverImage: null,
         }));
       }
     } else {
       if (isExisting) {
-        setVenueData(prev => ({
+        setVenueData((prev) => ({
           ...prev,
-          existingImages: prev.existingImages.filter((_, i) => i !== index)
+          existingImages: prev.existingImages.filter((_, i) => i !== index),
         }));
       } else {
-        setVenueData(prev => ({
+        setVenueData((prev) => ({
           ...prev,
-          images: prev.images.filter((_, i) => i !== index)
+          images: prev.images.filter((_, i) => i !== index),
         }));
       }
     }
@@ -345,22 +363,31 @@ const EditVenue = () => {
     switch (step) {
       case 1:
         if (!venueData.name.trim()) newErrors.name = "Venue name is required";
-        if (!venueData.description.trim()) newErrors.description = "Description is required";
-        if (!venueData.address.trim()) newErrors.address = "Address is required";
+        if (!venueData.description.trim())
+          newErrors.description = "Description is required";
+        if (!venueData.address.trim())
+          newErrors.address = "Address is required";
         if (!venueData.city.trim()) newErrors.city = "City is required";
         if (!venueData.state.trim()) newErrors.state = "State is required";
-        if (!venueData.pincode.trim()) newErrors.pincode = "Pincode is required";
-        if (!venueData.contactName.trim()) newErrors.contactName = "Contact name is required";
-        if (!venueData.phone.trim()) newErrors.phone = "Phone number is required";
+        if (!venueData.pincode.trim())
+          newErrors.pincode = "Pincode is required";
+        if (!venueData.contactName.trim())
+          newErrors.contactName = "Contact name is required";
+        if (!venueData.phone.trim())
+          newErrors.phone = "Phone number is required";
         if (!venueData.email.trim()) newErrors.email = "Email is required";
-        if (venueData.sportTypes.length === 0) newErrors.sportTypes = "Select at least one sport type";
+        if (venueData.sportTypes.length === 0)
+          newErrors.sportTypes = "Select at least one sport type";
         break;
 
       case 2:
         venueData.courts.forEach((court, index) => {
-          if (!court.name.trim()) newErrors[`court_${index}_name`] = "Court name is required";
-          if (!court.sportType) newErrors[`court_${index}_sport`] = "Sport type is required";
-          if (!court.pricePerHour || court.pricePerHour <= 0) newErrors[`court_${index}_price`] = "Valid price is required";
+          if (!court.name.trim())
+            newErrors[`court_${index}_name`] = "Court name is required";
+          if (!court.sportType)
+            newErrors[`court_${index}_sport`] = "Sport type is required";
+          if (!court.pricePerHour || court.pricePerHour <= 0)
+            newErrors[`court_${index}_price`] = "Valid price is required";
         });
         break;
 
@@ -384,12 +411,12 @@ const EditVenue = () => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep((prev) => Math.min(prev + 1, 4));
     }
   };
 
   const handlePrevious = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async () => {
@@ -398,11 +425,11 @@ const EditVenue = () => {
     setIsSubmitting(true);
 
     try {
-      console.log('Updating venue data via API...');
-      
+      console.log("Updating venue data via API...");
+
       // Create FormData for file uploads
       const formData = new FormData();
-      
+
       // Add venue data (excluding file objects)
       const venuePayload = {
         ...venueData,
@@ -411,49 +438,47 @@ const EditVenue = () => {
         existingImages: venueData.existingImages,
         existingCoverImage: venueData.existingCoverImage,
       };
-      
-      formData.append('venueData', JSON.stringify(venuePayload));
-      
+
+      formData.append("venueData", JSON.stringify(venuePayload));
+
       // Add new cover image if provided
       if (venueData.coverImage) {
-        formData.append('coverImage', venueData.coverImage);
+        formData.append("coverImage", venueData.coverImage);
       }
-      
+
       // Add new images
       venueData.images.forEach((image) => {
-        formData.append('images', image);
+        formData.append("images", image);
       });
 
       try {
         const response = await api.put(`/owner/venues/${id}`, formData, {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
         });
-        
-        console.log('Venue updated successfully via API:', response.data);
-        alert('Venue updated successfully!');
-        navigate('/owner/dashboard');
-        
-      } catch (apiError) {
-        console.error('API venue update failed:', apiError);
-        console.log('Simulating successful update...');
-        
-        // Fallback: simulate success
-        alert('Venue updated successfully!');
-        navigate('/owner/dashboard');
-      }
 
+        console.log("Venue updated successfully via API:", response.data);
+        alert("Venue updated successfully!");
+        navigate("/owner/dashboard");
+      } catch (apiError) {
+        console.error("API venue update failed:", apiError);
+        console.log("Simulating successful update...");
+
+        // Fallback: simulate success
+        alert("Venue updated successfully!");
+        navigate("/owner/dashboard");
+      }
     } catch (error) {
-      console.error('Error updating venue:', error);
-      alert('Failed to update venue. Please try again.');
+      console.error("Error updating venue:", error);
+      alert("Failed to update venue. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleReset = () => {
-    if (confirm('Are you sure you want to reset all changes?')) {
+    if (confirm("Are you sure you want to reset all changes?")) {
       if (originalData) {
         setVenueData({
           ...originalData,
@@ -472,8 +497,10 @@ const EditVenue = () => {
   const renderStep1 = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-        
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Basic Information
+        </h3>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -482,13 +509,15 @@ const EditVenue = () => {
             <input
               type="text"
               value={venueData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              onChange={(e) => handleInputChange("name", e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.name ? 'border-red-300' : 'border-gray-300'
+                errors.name ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Enter venue name"
             />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -497,14 +526,16 @@ const EditVenue = () => {
             </label>
             <textarea
               value={venueData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => handleInputChange("description", e.target.value)}
               rows={3}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.description ? 'border-red-300' : 'border-gray-300'
+                errors.description ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Describe your venue"
             />
-            {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+            {errors.description && (
+              <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+            )}
           </div>
 
           {/* Address fields */}
@@ -515,13 +546,15 @@ const EditVenue = () => {
             <input
               type="text"
               value={venueData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
+              onChange={(e) => handleInputChange("address", e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.address ? 'border-red-300' : 'border-gray-300'
+                errors.address ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Enter complete address"
             />
-            {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+            {errors.address && (
+              <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+            )}
           </div>
 
           <div>
@@ -531,13 +564,15 @@ const EditVenue = () => {
             <input
               type="text"
               value={venueData.city}
-              onChange={(e) => handleInputChange('city', e.target.value)}
+              onChange={(e) => handleInputChange("city", e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.city ? 'border-red-300' : 'border-gray-300'
+                errors.city ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Enter city"
             />
-            {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+            {errors.city && (
+              <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+            )}
           </div>
 
           <div>
@@ -547,13 +582,15 @@ const EditVenue = () => {
             <input
               type="text"
               value={venueData.state}
-              onChange={(e) => handleInputChange('state', e.target.value)}
+              onChange={(e) => handleInputChange("state", e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.state ? 'border-red-300' : 'border-gray-300'
+                errors.state ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Enter state"
             />
-            {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
+            {errors.state && (
+              <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+            )}
           </div>
 
           {/* Contact Information */}
@@ -564,13 +601,15 @@ const EditVenue = () => {
             <input
               type="text"
               value={venueData.contactName}
-              onChange={(e) => handleInputChange('contactName', e.target.value)}
+              onChange={(e) => handleInputChange("contactName", e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.contactName ? 'border-red-300' : 'border-gray-300'
+                errors.contactName ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Enter contact person name"
             />
-            {errors.contactName && <p className="text-red-500 text-sm mt-1">{errors.contactName}</p>}
+            {errors.contactName && (
+              <p className="text-red-500 text-sm mt-1">{errors.contactName}</p>
+            )}
           </div>
 
           <div>
@@ -580,13 +619,15 @@ const EditVenue = () => {
             <input
               type="tel"
               value={venueData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
+              onChange={(e) => handleInputChange("phone", e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.phone ? 'border-red-300' : 'border-gray-300'
+                errors.phone ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Enter phone number"
             />
-            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+            {errors.phone && (
+              <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+            )}
           </div>
 
           <div>
@@ -596,27 +637,31 @@ const EditVenue = () => {
             <input
               type="email"
               value={venueData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
+              onChange={(e) => handleInputChange("email", e.target.value)}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.email ? 'border-red-300' : 'border-gray-300'
+                errors.email ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Enter email address"
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
           </div>
         </div>
 
         {/* Sport Types */}
         <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Sport Types *</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Sport Types *
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {sportTypesOptions.map((sport) => (
               <label
                 key={sport}
                 className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
                   venueData.sportTypes.includes(sport)
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-gray-300 hover:border-gray-400"
                 }`}
               >
                 <input
@@ -629,7 +674,9 @@ const EditVenue = () => {
               </label>
             ))}
           </div>
-          {errors.sportTypes && <p className="text-red-500 text-sm mt-1">{errors.sportTypes}</p>}
+          {errors.sportTypes && (
+            <p className="text-red-500 text-sm mt-1">{errors.sportTypes}</p>
+          )}
         </div>
       </div>
     </div>
@@ -638,7 +685,9 @@ const EditVenue = () => {
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Courts & Pricing</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Courts & Pricing
+        </h3>
         <button
           onClick={addCourt}
           className="flex items-center space-x-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -671,9 +720,13 @@ const EditVenue = () => {
                 <input
                   type="text"
                   value={court.name}
-                  onChange={(e) => handleCourtChange(index, 'name', e.target.value)}
+                  onChange={(e) =>
+                    handleCourtChange(index, "name", e.target.value)
+                  }
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors[`court_${index}_name`] ? 'border-red-300' : 'border-gray-300'
+                    errors[`court_${index}_name`]
+                      ? "border-red-300"
+                      : "border-gray-300"
                   }`}
                   placeholder="Enter court name"
                 />
@@ -685,14 +738,20 @@ const EditVenue = () => {
                 </label>
                 <select
                   value={court.sportType}
-                  onChange={(e) => handleCourtChange(index, 'sportType', e.target.value)}
+                  onChange={(e) =>
+                    handleCourtChange(index, "sportType", e.target.value)
+                  }
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors[`court_${index}_sport`] ? 'border-red-300' : 'border-gray-300'
+                    errors[`court_${index}_sport`]
+                      ? "border-red-300"
+                      : "border-gray-300"
                   }`}
                 >
                   <option value="">Select sport type</option>
                   {venueData.sportTypes.map((sport) => (
-                    <option key={sport} value={sport}>{sport}</option>
+                    <option key={sport} value={sport}>
+                      {sport}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -705,9 +764,13 @@ const EditVenue = () => {
                   type="number"
                   min="0"
                   value={court.pricePerHour}
-                  onChange={(e) => handleCourtChange(index, 'pricePerHour', e.target.value)}
+                  onChange={(e) =>
+                    handleCourtChange(index, "pricePerHour", e.target.value)
+                  }
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors[`court_${index}_price`] ? 'border-red-300' : 'border-gray-300'
+                    errors[`court_${index}_price`]
+                      ? "border-red-300"
+                      : "border-gray-300"
                   }`}
                   placeholder="Enter price per hour"
                 />
@@ -744,7 +807,9 @@ const EditVenue = () => {
                 <ArrowLeft className="h-5 w-5 text-gray-600" />
               </button>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Edit Venue</h1>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Edit Venue
+                </h1>
                 <p className="text-sm text-gray-500">Step {currentStep} of 4</p>
               </div>
             </div>
@@ -753,31 +818,36 @@ const EditVenue = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                  currentStep >= step.id
-                    ? 'border-blue-600 bg-blue-600 text-white'
-                    : 'border-gray-300 text-gray-400'
-                }`}>
+                <div
+                  className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                    currentStep >= step.id
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-gray-300 text-gray-400"
+                  }`}
+                >
                   {step.id}
                 </div>
                 <div className="ml-3">
-                  <p className={`text-sm font-medium ${
-                    currentStep >= step.id ? 'text-blue-600' : 'text-gray-400'
-                  }`}>
+                  <p
+                    className={`text-sm font-medium ${
+                      currentStep >= step.id ? "text-blue-600" : "text-gray-400"
+                    }`}
+                  >
                     {step.title}
                   </p>
                   <p className="text-xs text-gray-500">{step.description}</p>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-4 ${
-                    currentStep > step.id ? 'bg-blue-600' : 'bg-gray-300'
-                  }`} />
+                  <div
+                    className={`flex-1 h-0.5 mx-4 ${
+                      currentStep > step.id ? "bg-blue-600" : "bg-gray-300"
+                    }`}
+                  />
                 )}
               </div>
             ))}
@@ -791,13 +861,17 @@ const EditVenue = () => {
           {currentStep === 3 && (
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-              <p className="text-gray-600">Step 3 content (Amenities & Hours) - Similar to AddVenue</p>
+              <p className="text-gray-600">
+                Step 3 content (Amenities & Hours) - Similar to AddVenue
+              </p>
             </div>
           )}
           {currentStep === 4 && (
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-              <p className="text-gray-600">Step 4 content (Images & Policies) - Similar to AddVenue</p>
+              <p className="text-gray-600">
+                Step 4 content (Images & Policies) - Similar to AddVenue
+              </p>
             </div>
           )}
 
@@ -836,7 +910,7 @@ const EditVenue = () => {
                   className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center space-x-2"
                 >
                   <Save className="h-4 w-4" />
-                  <span>{isSubmitting ? 'Updating...' : 'Update Venue'}</span>
+                  <span>{isSubmitting ? "Updating..." : "Update Venue"}</span>
                 </button>
               )}
             </div>

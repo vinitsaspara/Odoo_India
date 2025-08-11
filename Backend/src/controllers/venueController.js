@@ -47,12 +47,12 @@ export const uploadVenueImages = upload.fields([
 export const createVenue = async (req, res) => {
     try {
         const venueData = JSON.parse(req.body.venueData);
-        
+
         // Validate required fields
-        const requiredFields = ['name', 'description', 'address', 'city', 'state', 'pincode', 
-                               'contactName', 'phone', 'email', 'sportTypes', 'totalCourts', 
-                               'courts', 'cancellationPolicy'];
-        
+        const requiredFields = ['name', 'description', 'address', 'city', 'state', 'pincode',
+            'contactName', 'phone', 'email', 'sportTypes', 'totalCourts',
+            'courts', 'cancellationPolicy'];
+
         for (const field of requiredFields) {
             if (!venueData[field]) {
                 return res.status(400).json({
@@ -303,7 +303,7 @@ export const getVenueById = async (req, res) => {
 export const updateVenue = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         // Find venue and verify ownership
         const venue = await Venue.findById(id);
         if (!venue) {
@@ -325,7 +325,7 @@ export const updateVenue = async (req, res) => {
 
         // Process uploaded images if any
         const updateData = { ...venueData };
-        
+
         if (req.files) {
             // Process new cover image
             if (req.files.coverImage && req.files.coverImage[0]) {
@@ -382,7 +382,7 @@ export const updateVenue = async (req, res) => {
 export const deleteVenue = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         // Find venue and verify ownership
         const venue = await Venue.findById(id);
         if (!venue) {

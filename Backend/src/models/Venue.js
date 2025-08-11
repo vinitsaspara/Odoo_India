@@ -74,7 +74,7 @@ const venueSchema = new mongoose.Schema({
         ref: 'User',
         required: [true, 'Owner ID is required']
     },
-    
+
     // Basic Information
     name: {
         type: String,
@@ -86,7 +86,7 @@ const venueSchema = new mongoose.Schema({
         required: [true, 'Description is required'],
         trim: true
     },
-    
+
     // Location
     address: {
         type: String,
@@ -114,7 +114,7 @@ const venueSchema = new mongoose.Schema({
     longitude: {
         type: Number
     },
-    
+
     // Contact Information
     contactName: {
         type: String,
@@ -135,7 +135,7 @@ const venueSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
-    
+
     // Venue Details
     sportTypes: [{
         type: String,
@@ -148,19 +148,19 @@ const venueSchema = new mongoose.Schema({
         min: [1, 'Must have at least 1 court']
     },
     courts: [courtSchema],
-    
+
     // Amenities
     amenities: [{
         type: String,
         trim: true
     }],
-    
+
     // Operating Hours
     operatingHours: {
         type: operatingHoursSchema,
         default: () => ({})
     },
-    
+
     // Policies
     cancellationPolicy: {
         type: String,
@@ -171,7 +171,7 @@ const venueSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
-    
+
     // Images
     images: [{
         filename: String,
@@ -183,7 +183,7 @@ const venueSchema = new mongoose.Schema({
         path: String,
         url: String
     },
-    
+
     // Status and Reviews
     status: {
         type: String,
@@ -200,7 +200,7 @@ const venueSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    
+
     // Admin Review
     adminComments: {
         type: String,

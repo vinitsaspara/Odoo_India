@@ -46,7 +46,14 @@ const OwnerDashboard = () => {
     { value: "this_year", label: "This Year" },
   ];
 
-  const statusOptions = ["All", "Active", "Inactive", "Under Maintenance", "Pending Approval", "Rejected"];
+  const statusOptions = [
+    "All",
+    "Active",
+    "Inactive",
+    "Under Maintenance",
+    "Pending Approval",
+    "Rejected",
+  ];
 
   useEffect(() => {
     fetchDashboardData();
@@ -60,18 +67,27 @@ const OwnerDashboard = () => {
       console.log("Fetching owner dashboard data from API...");
 
       // Fetch owner's venues
-      const venuesResponse = await api.get('/owner/venues');
-      
+      const venuesResponse = await api.get("/owner/venues");
+
       if (venuesResponse.data.success) {
         setVenues(venuesResponse.data.venues || []);
-        console.log('Owner venues fetched:', venuesResponse.data.venues?.length || 0);
-        
+        console.log(
+          "Owner venues fetched:",
+          venuesResponse.data.venues?.length || 0
+        );
+
         // Calculate basic stats from venues
         const ownerVenues = venuesResponse.data.venues || [];
-        const activeVenues = ownerVenues.filter(v => v.status === 'Active').length;
-        const pendingVenues = ownerVenues.filter(v => v.status === 'Pending Approval').length;
-        const rejectedVenues = ownerVenues.filter(v => v.status === 'Rejected').length;
-        
+        const activeVenues = ownerVenues.filter(
+          (v) => v.status === "Active"
+        ).length;
+        const pendingVenues = ownerVenues.filter(
+          (v) => v.status === "Pending Approval"
+        ).length;
+        const rejectedVenues = ownerVenues.filter(
+          (v) => v.status === "Rejected"
+        ).length;
+
         setKpis({
           totalVenues: ownerVenues.length,
           activeVenues: activeVenues,
@@ -87,14 +103,13 @@ const OwnerDashboard = () => {
           revenueGrowth: 0,
         });
       } else {
-        throw new Error('Failed to fetch venues');
+        throw new Error("Failed to fetch venues");
       }
 
       // TODO: Fetch real bookings data when booking API is ready
       setRecentBookings([]);
-
     } catch (error) {
-      console.error('Dashboard data fetch failed:', error);
+      console.error("Dashboard data fetch failed:", error);
       setError("Unable to load dashboard data. Please check your connection.");
       setVenues([]);
       setKpis({
@@ -116,8 +131,6 @@ const OwnerDashboard = () => {
       setIsLoading(false);
     }
   };
-
-
 
   const filteredVenues = venues.filter((venue) => {
     const matchesSearch =
@@ -421,7 +434,13 @@ const OwnerDashboard = () => {
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-4">
                             <img
-                              src={venue.images?.[0]?.url || venue.coverImage?.url || `/api/placeholder/80/80?text=${encodeURIComponent(venue.name)}`}
+                              src={
+                                venue.images?.[0]?.url ||
+                                venue.coverImage?.url ||
+                                `/api/placeholder/80/80?text=${encodeURIComponent(
+                                  venue.name
+                                )}`
+                              }
                               alt={venue.name}
                               className="w-16 h-16 rounded-lg object-cover"
                             />
@@ -431,13 +450,16 @@ const OwnerDashboard = () => {
                               </h3>
                               <div className="flex items-center text-gray-600 text-sm mt-1">
                                 <MapPin className="h-4 w-4 mr-1" />
-                                <span>{venue.address || 'Address not available'}</span>
+                                <span>
+                                  {venue.address || "Address not available"}
+                                </span>
                               </div>
                               <div className="flex items-center space-x-4 mt-2">
                                 <div className="flex items-center">
                                   <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
                                   <span className="text-sm text-gray-600">
-                                    {venue.rating || 0} ({venue.totalReviews || 0})
+                                    {venue.rating || 0} (
+                                    {venue.totalReviews || 0})
                                   </span>
                                 </div>
                                 <span
@@ -501,15 +523,24 @@ const OwnerDashboard = () => {
                           {venue.status === "Pending Approval" && (
                             <div className="text-sm text-blue-600">
                               <Clock className="h-4 w-4 inline mr-1" />
-                              Submitted on {venue.submittedAt ? new Date(venue.submittedAt).toLocaleDateString() : 'Recently'}
+                              Submitted on{" "}
+                              {venue.submittedAt
+                                ? new Date(
+                                    venue.submittedAt
+                                  ).toLocaleDateString()
+                                : "Recently"}
                             </div>
                           )}
-                          {venue.status === "Rejected" && venue.adminComments && (
-                            <div className="text-sm text-red-600 max-w-md">
-                              <AlertCircle className="h-4 w-4 inline mr-1" />
-                              <span className="font-medium">Rejected:</span> {venue.adminComments}
-                            </div>
-                          )}
+                          {venue.status === "Rejected" &&
+                            venue.adminComments && (
+                              <div className="text-sm text-red-600 max-w-md">
+                                <AlertCircle className="h-4 w-4 inline mr-1" />
+                                <span className="font-medium">
+                                  Rejected:
+                                </span>{" "}
+                                {venue.adminComments}
+                              </div>
+                            )}
                           {venue.status === "Active" && (
                             <div className="text-sm text-green-600">
                               <CheckCircle className="h-4 w-4 inline mr-1" />
@@ -532,7 +563,7 @@ const OwnerDashboard = () => {
                               <Eye className="h-4 w-4" />
                               <span>View</span>
                             </button>
-                            
+
                             {venue.status !== "Pending Approval" && (
                               <button
                                 onClick={() => handleEditVenue(venue._id)}
@@ -542,7 +573,7 @@ const OwnerDashboard = () => {
                                 <span>Edit</span>
                               </button>
                             )}
-                            
+
                             {venue.status === "Active" && (
                               <button
                                 onClick={() => handleManageCourts(venue._id)}
@@ -588,7 +619,8 @@ const OwnerDashboard = () => {
                       No recent bookings found
                     </p>
                     <p className="text-gray-400 text-xs">
-                      Bookings will appear here once customers start booking your venues
+                      Bookings will appear here once customers start booking
+                      your venues
                     </p>
                   </div>
                 ) : (

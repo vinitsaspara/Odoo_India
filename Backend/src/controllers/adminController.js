@@ -12,15 +12,15 @@ export const getAdminStats = async (req, res) => {
         const pendingVenues = await Venue.countDocuments({ status: 'Pending Approval' });
         const activeVenues = await Venue.countDocuments({ status: 'Active' });
         const totalBookings = await Booking.countDocuments();
-        
+
         // Get recent activity (last 30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
+
         const newUsersThisMonth = await User.countDocuments({
             createdAt: { $gte: thirtyDaysAgo }
         });
-        
+
         const newVenuesThisMonth = await Venue.countDocuments({
             createdAt: { $gte: thirtyDaysAgo }
         });
@@ -372,7 +372,7 @@ export const updateVenueStatus = async (req, res) => {
         }
 
         const updateData = { status };
-        
+
         if (comments) {
             updateData.adminComments = comments;
         }

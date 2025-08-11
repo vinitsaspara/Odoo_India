@@ -98,14 +98,16 @@ const AdminDashboard = () => {
       if (activityResponse.status === "fulfilled") {
         setRecentActivity(activityResponse.value.data.activity || []);
       } else {
-        console.error("Failed to fetch recent activity:", activityResponse.reason);
+        console.error(
+          "Failed to fetch recent activity:",
+          activityResponse.reason
+        );
         setRecentActivity([]);
       }
-
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
       setError("Failed to load dashboard data. Please try again.");
-      
+
       // Set empty states on error
       setStats({
         totalUsers: 0,
@@ -127,13 +129,13 @@ const AdminDashboard = () => {
     }
   };
 
-
-
   const filteredVenues = pendingVenues.filter((venue) => {
     const matchesSearch =
       venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (venue.ownerId?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (venue.address || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (venue.ownerId?.name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (venue.address || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "All" || venue.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -562,7 +564,11 @@ const AdminDashboard = () => {
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-start space-x-4">
                             <img
-                              src={venue.images?.[0]?.url || venue.coverImage?.url || getSportPlaceholder(venue.name, 80, 80)}
+                              src={
+                                venue.images?.[0]?.url ||
+                                venue.coverImage?.url ||
+                                getSportPlaceholder(venue.name, 80, 80)
+                              }
                               alt={venue.name}
                               className="w-20 h-20 rounded-lg object-cover"
                             />
@@ -571,11 +577,13 @@ const AdminDashboard = () => {
                                 {venue.name}
                               </h3>
                               <p className="text-sm text-gray-600 mb-1">
-                                by {venue.ownerId?.name || 'Unknown Owner'}
+                                by {venue.ownerId?.name || "Unknown Owner"}
                               </p>
                               <div className="flex items-center text-gray-600 text-sm">
                                 <MapPin className="h-4 w-4 mr-1" />
-                                <span>{venue.address || 'Address not available'}</span>
+                                <span>
+                                  {venue.address || "Address not available"}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -603,8 +611,11 @@ const AdminDashboard = () => {
                             <p className="text-sm text-gray-600">Price Range</p>
                             <p className="font-semibold">
                               {(() => {
-                                if (!venue.courts || venue.courts.length === 0) return '₹0-0';
-                                const prices = venue.courts.map(court => court.pricePerHour || 0);
+                                if (!venue.courts || venue.courts.length === 0)
+                                  return "₹0-0";
+                                const prices = venue.courts.map(
+                                  (court) => court.pricePerHour || 0
+                                );
                                 const min = Math.min(...prices);
                                 const max = Math.max(...prices);
                                 return `₹${min}-${max}`;
@@ -614,9 +625,11 @@ const AdminDashboard = () => {
                           <div className="text-center">
                             <p className="text-sm text-gray-600">Submitted</p>
                             <p className="font-semibold">
-                              {venue.submittedAt ? new Date(venue.submittedAt).toLocaleDateString(
-                                "en-IN"
-                              ) : 'N/A'}
+                              {venue.submittedAt
+                                ? new Date(
+                                    venue.submittedAt
+                                  ).toLocaleDateString("en-IN")
+                                : "N/A"}
                             </p>
                           </div>
                         </div>
@@ -632,10 +645,12 @@ const AdminDashboard = () => {
                         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                           <div className="text-sm text-gray-600">
                             <p>
-                              <strong>Owner:</strong> {venue.ownerId?.email || 'Email not available'}
+                              <strong>Owner:</strong>{" "}
+                              {venue.ownerId?.email || "Email not available"}
                             </p>
                             <p>
-                              <strong>Phone:</strong> {venue.phone || 'Phone not available'}
+                              <strong>Phone:</strong>{" "}
+                              {venue.phone || "Phone not available"}
                             </p>
                           </div>
 
@@ -692,11 +707,10 @@ const AdminDashboard = () => {
                 {recentActivity.length === 0 ? (
                   <div className="text-center py-8">
                     <Activity className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-sm">
-                      No recent activity
-                    </p>
+                    <p className="text-gray-500 text-sm">No recent activity</p>
                     <p className="text-gray-400 text-xs">
-                      Activity will appear here as users and venues interact with the platform
+                      Activity will appear here as users and venues interact
+                      with the platform
                     </p>
                   </div>
                 ) : (

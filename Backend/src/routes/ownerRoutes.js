@@ -34,7 +34,7 @@ router.get('/venues/:id', verifyToken, requireRoles(['owner']), async (req, res)
     try {
         // First get the venue
         const venue = await getVenueById(req, res);
-        
+
         // Additional ownership check is handled in the controller
         return venue;
     } catch (error) {
