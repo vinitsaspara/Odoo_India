@@ -11,8 +11,13 @@ import { requireRoles } from '../middlewares/roleMiddleware.js';
 
 const router = express.Router();
 
-// @route   GET /api/bookings/availability/:venueId/:courtId
+// @route   GET /api/bookings/available-slots
 // @desc    Get available slots for a court on a specific date
+// @access  Public
+router.get('/available-slots', getAvailableSlots);
+
+// @route   GET /api/bookings/availability/:venueId/:courtId
+// @desc    Get available slots for a court on a specific date (legacy route)
 // @access  Public
 router.get('/availability/:venueId/:courtId', getAvailableSlots);
 

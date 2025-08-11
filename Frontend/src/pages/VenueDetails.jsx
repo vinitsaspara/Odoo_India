@@ -33,28 +33,65 @@ const VenueDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedCourt, setSelectedCourt] = useState(null);
 
-  // Time slots for booking
-  const timeSlots = [
-    "06:00 - 07:00",
-    "07:00 - 08:00",
-    "08:00 - 09:00",
-    "09:00 - 10:00",
-    "10:00 - 11:00",
-    "11:00 - 12:00",
-    "12:00 - 13:00",
-    "13:00 - 14:00",
-    "14:00 - 15:00",
-    "15:00 - 16:00",
-    "16:00 - 17:00",
-    "17:00 - 18:00",
-    "18:00 - 19:00",
-    "19:00 - 20:00",
-    "20:00 - 21:00",
-    "21:00 - 22:00",
-  ];
+  // Function to fetch available slots when date changes
+  const fetchAvailableSlots = async (venueId, courtId, selectedDate) => {
+    if (!venueId || !courtId || !selectedDate) return;
+
+    setIsLoadingSlots(true);
+    try {
+      console.log("Fetching available slots for:", {
+        venueId,
+        courtId,
+        selectedDate,
+      });
+      const response = await api.get("/bookings/available-slots", {
+        params: { venueId, courtId, selectedDate },
+      });
+
+      if (response.data.success) {
+        const slots = response.data.availableSlots || [];
+        setAvailableSlots(slots);
+        console.log("Available slots fetched:", slots);
+        console.log(
+          `Total: ${response.data.totalSlots || 0}, Available: ${
+            response.data.availableCount || 0
+          }, Booked: ${response.data.bookedCount || 0}`
+        );
+      } else {
+        console.error("Failed to fetch slots:", response.data.message);
+        setAvailableSlots([]);
+      }
+    } catch (error) {
+      console.error("Error fetching available slots:", error);
+      setAvailableSlots([]);
+      // Show user-friendly message
+      alert("Failed to load available time slots. Please try again.");
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
+  // Generate fallback slots for demo purposes
+  const generateFallbackSlots = () => {
+    const slots = [];
+    for (let hour = 6; hour < 22; hour++) {
+      const startTime = `${hour.toString().padStart(2, "0")}:00`;
+      const endTime = `${(hour + 1).toString().padStart(2, "0")}:00`;
+      slots.push({
+        startTime,
+        endTime,
+        label: `${startTime} - ${endTime}`,
+        available: true,
+        price: selectedCourt?.pricePerHour || 500,
+      });
+    }
+    return slots;
+  };
 
   // Amenity icons mapping
   const amenityIcons = {
@@ -80,6 +117,13 @@ const VenueDetails = () => {
     const formattedDate = today.toISOString().split("T")[0];
     setSelectedDate(formattedDate);
   }, []);
+
+  // Fetch available slots when date or court changes
+  useEffect(() => {
+    if (selectedDate && selectedCourt && venue) {
+      fetchAvailableSlots(venue._id, selectedCourt._id, selectedDate);
+    }
+  }, [selectedDate, selectedCourt, venue]);
 
   const fetchVenueDetails = async () => {
     setIsLoading(true);
@@ -219,7 +263,10 @@ const VenueDetails = () => {
 
   const handleBookNow = (court) => {
     setSelectedCourt(court);
+    setSelectedTimeSlot("");
+    setAvailableSlots([]);
     setShowBookingModal(true);
+    // Slots will be fetched by useEffect when selectedCourt changes
   };
 
   const handleBookingSubmit = async () => {
@@ -228,37 +275,54 @@ const VenueDetails = () => {
       return;
     }
 
+    // Find the selected slot object
+    const selectedSlotObj = availableSlots.find(
+      (slot) =>
+        slot.label === selectedTimeSlot ||
+        `${slot.startTime} - ${slot.endTime}` === selectedTimeSlot
+    );
+
+    if (!selectedSlotObj) {
+      alert("Invalid time slot selected");
+      return;
+    }
+
     try {
+      // Prepare booking data in the new format
       const bookingData = {
         venueId: venue._id,
         courtId: selectedCourt._id,
         date: selectedDate,
-        timeSlot: selectedTimeSlot,
-        duration: 1,
-        totalAmount: selectedCourt.pricePerHour,
+        startTime: selectedSlotObj.startTime,
+        endTime: selectedSlotObj.endTime,
+        price: selectedSlotObj.price || selectedCourt.pricePerHour,
       };
 
-      console.log("Submitting booking to API...");
+      console.log("Submitting booking:", bookingData);
       const response = await api.post("/bookings", bookingData);
 
-      alert(
-        `Booking confirmed! Booking ID: ${
-          response.data.bookingId || "Generated"
-        }`
-      );
+      if (response.data.success) {
+        alert(
+          `Booking confirmed! Your booking for ${selectedCourt.name} on ${selectedDate} at ${selectedTimeSlot} has been created successfully.`
+        );
+
+        // Reset modal state and redirect to MyBookings page
+        setShowBookingModal(false);
+        setSelectedCourt(null);
+        setSelectedTimeSlot("");
+        setAvailableSlots([]);
+        navigate("/my-bookings");
+      } else {
+        alert(`Booking failed: ${response.data.message}`);
+      }
     } catch (error) {
       console.error("Booking error:", error);
 
-      // Fallback to mock booking for demo
-      console.log("API failed, creating mock booking...");
-      const mockBookingId = `BK${Date.now().toString().slice(-6)}`;
-      alert(
-        `Booking confirmed for ${selectedCourt.name} on ${selectedDate} at ${selectedTimeSlot}. Booking ID: ${mockBookingId}`
-      );
-    } finally {
-      setShowBookingModal(false);
-      setSelectedCourt(null);
-      setSelectedTimeSlot("");
+      if (error.response?.data?.message) {
+        alert(`Booking failed: ${error.response.data.message}`);
+      } else {
+        alert("Failed to create booking. Please try again.");
+      }
     }
   };
 
@@ -647,7 +711,10 @@ const VenueDetails = () => {
                 <input
                   type="date"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setSelectedTimeSlot(""); // Reset time slot when date changes
+                  }}
                   min={new Date().toISOString().split("T")[0]}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -657,18 +724,44 @@ const VenueDetails = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Time Slot
                 </label>
-                <select
-                  value={selectedTimeSlot}
-                  onChange={(e) => setSelectedTimeSlot(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Choose time slot</option>
-                  {timeSlots.map((slot, index) => (
-                    <option key={index} value={slot}>
-                      {slot}
+                {isLoadingSlots ? (
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    Loading available slots...
+                  </div>
+                ) : (
+                  <select
+                    value={selectedTimeSlot}
+                    onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={availableSlots.length === 0}
+                  >
+                    <option value="">
+                      {availableSlots.length === 0
+                        ? "No available slots"
+                        : "Choose time slot"}
                     </option>
-                  ))}
-                </select>
+                    {availableSlots.map((slot, index) => (
+                      <option
+                        key={index}
+                        value={
+                          slot.label || `${slot.startTime} - ${slot.endTime}`
+                        }
+                      >
+                        {slot.label || `${slot.startTime} - ${slot.endTime}`} -
+                        ₹{slot.price}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {!isLoadingSlots &&
+                  availableSlots.length === 0 &&
+                  selectedDate && (
+                    <p className="text-sm text-red-600 mt-1">
+                      No available slots for this date. All slots may be booked
+                      or venue is closed.
+                    </p>
+                  )}
               </div>
 
               <div className="bg-gray-50 p-3 rounded-lg">
@@ -687,16 +780,22 @@ const VenueDetails = () => {
 
             <div className="flex space-x-3 mt-6">
               <button
-                onClick={() => setShowBookingModal(false)}
+                onClick={() => {
+                  setShowBookingModal(false);
+                  setSelectedCourt(null);
+                  setSelectedTimeSlot("");
+                  setAvailableSlots([]);
+                }}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleBookingSubmit}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={!selectedDate || !selectedTimeSlot || isLoadingSlots}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Confirm Booking
+                {isLoadingSlots ? "Loading..." : "Confirm Booking"}
               </button>
             </div>
           </div>

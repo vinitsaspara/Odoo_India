@@ -34,6 +34,7 @@ const MyBookings = () => {
   const statusOptions = [
     "All",
     "Confirmed",
+    "Booked",
     "Completed",
     "Cancelled",
     "Pending",
@@ -62,19 +63,39 @@ const MyBookings = () => {
       console.log("Fetching bookings from API...");
       const response = await api.get("/bookings/user");
 
-      if (response.data && response.data.bookings) {
-        console.log("Bookings fetched successfully from API");
-        setBookings(response.data.bookings);
+      if (response.data && response.data.success && response.data.bookings) {
+        console.log(
+          "Bookings fetched successfully from API:",
+          response.data.bookings
+        );
+        const bookingsData = response.data.bookings;
+
+        // Process bookings to ensure proper data structure
+        const processedBookings = bookingsData.map((booking) => ({
+          ...booking,
+          // Ensure court information is available
+          courtName: booking.court?.name || "Court",
+          venueName: booking.venueId?.name || "Venue",
+          // Handle date display
+          displayDate: booking.date
+            ? new Date(booking.date).toLocaleDateString()
+            : "Date not available",
+          // Handle time display
+          timeSlot: `${booking.startTime} - ${booking.endTime}`,
+          // Ensure status is properly formatted
+          status: booking.status || "booked",
+        }));
+
+        setBookings(processedBookings);
+        console.log(`Successfully loaded ${processedBookings.length} bookings`);
       } else {
-        throw new Error("Invalid API response format");
+        console.log("No bookings found or invalid response");
+        setBookings([]);
       }
     } catch (error) {
       console.error("Failed to fetch bookings from API:", error);
-      console.log("Falling back to mock data...");
-
-      // Fallback to mock data
-      const mockBookings = generateMockBookings();
-      setBookings(mockBookings);
+      setError("Failed to load bookings. Please try refreshing the page.");
+      setBookings([]);
     } finally {
       setIsLoading(false);
     }
@@ -286,10 +307,12 @@ const MyBookings = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case "Confirmed":
+      case "booked":
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case "Completed":
         return <CheckCircle className="h-5 w-5 text-blue-500" />;
       case "Cancelled":
+      case "cancelled":
         return <XCircle className="h-5 w-5 text-red-500" />;
       case "Pending":
         return <AlertCircle className="h-5 w-5 text-yellow-500" />;
@@ -301,10 +324,12 @@ const MyBookings = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case "Confirmed":
+      case "booked":
         return "bg-green-100 text-green-800";
       case "Completed":
         return "bg-blue-100 text-blue-800";
       case "Cancelled":
+      case "cancelled":
         return "bg-red-100 text-red-800";
       case "Pending":
         return "bg-yellow-100 text-yellow-800";
@@ -331,6 +356,36 @@ const MyBookings = () => {
         year: "numeric",
       });
     }
+  };
+
+  const formatDateFromDateTime = (dateTimeString) => {
+    if (!dateTimeString) return "Date not available";
+    const date = new Date(dateTimeString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return "Tomorrow";
+    } else {
+      return date.toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    }
+  };
+
+  const formatTimeFromDateTime = (dateTimeString) => {
+    if (!dateTimeString) return "Time not available";
+    return new Date(dateTimeString).toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
   };
 
   if (isLoading) {
@@ -463,10 +518,22 @@ const MyBookings = () => {
                     {getStatusIcon(booking.status)}
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {booking.venue.name}
+                        {booking.venueId?.name ||
+                          booking.venue?.name ||
+                          "Unknown Venue"}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        Booking ID: {booking.bookingId}
+                        {booking.courtName ||
+                          booking.court?.name ||
+                          "Unknown Court"}{" "}
+                        •{" "}
+                        {booking.courtSport ||
+                          booking.court?.sportType ||
+                          "Sport"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Booking ID:{" "}
+                        {booking._id?.slice(-8) || booking.bookingId}
                       </p>
                     </div>
                   </div>
@@ -475,7 +542,7 @@ const MyBookings = () => {
                       booking.status
                     )}`}
                   >
-                    {booking.status}
+                    {booking.status === "booked" ? "Confirmed" : booking.status}
                   </span>
                 </div>
 
@@ -483,53 +550,70 @@ const MyBookings = () => {
                   <div className="flex items-center space-x-2">
                     <MapPin className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {booking.venue.location.address}
+                      {booking.venueId?.address ||
+                        booking.venue?.address ||
+                        "Address not available"}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {formatDate(booking.date)}
+                      {booking.displayDate ||
+                        (booking.date
+                          ? new Date(booking.date).toLocaleDateString()
+                          : "Date not available")}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Clock className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {booking.timeSlot}
+                      {booking.timeSlot ||
+                        (booking.startTime && booking.endTime
+                          ? `${booking.startTime} - ${booking.endTime}`
+                          : "Time not available")}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium text-gray-900">
-                      ₹{booking.totalAmount}
+                      ₹{booking.price || "0"}
                     </span>
-                    <span className="text-xs text-gray-500">
-                      ({booking.paymentStatus})
-                    </span>
+                    <span className="text-xs text-gray-500">(per hour)</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      {booking.court.name}
+                      {booking.courtName || booking.court?.name || "Court"}
                     </p>
-                    {booking.notes && (
-                      <p className="text-xs text-gray-600 mt-1">
-                        {booking.notes}
-                      </p>
-                    )}
+                    <p className="text-xs text-gray-600 mt-1">
+                      Sport: {booking.court?.sportType || "Unknown"}
+                    </p>
                   </div>
 
                   <div className="flex items-center space-x-3">
                     <button
-                      onClick={() => navigate(`/venues/${booking.venue._id}`)}
+                      onClick={() =>
+                        navigate(
+                          `/venues/${
+                            booking.venueId?._id ||
+                            booking.venueId ||
+                            booking.venue?._id
+                          }`
+                        )
+                      }
                       className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm"
                     >
                       <Eye className="h-4 w-4" />
                       <span>View Venue</span>
                     </button>
 
-                    {booking.canCancel && (
+                    {/* Show cancel button for bookings that can be cancelled */}
+                    {(booking.canCancel ||
+                      ((booking.status === "booked" ||
+                        booking.status === "Confirmed") &&
+                        new Date(booking.startTime || booking.date) >
+                          new Date())) && (
                       <button
                         onClick={() => handleCancelBooking(booking)}
                         className="flex items-center space-x-2 text-red-600 hover:text-red-700 text-sm"
