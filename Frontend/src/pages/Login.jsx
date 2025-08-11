@@ -45,7 +45,7 @@ const Login = () => {
           navigate("/owner/dashboard");
           break;
         default:
-          navigate("/dashboard");
+          navigate("/");
       }
     } catch (error) {
       setError(error.message || "Login failed. Please try again.");

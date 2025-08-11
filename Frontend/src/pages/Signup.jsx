@@ -194,7 +194,7 @@ const Signup = () => {
           navigate("/owner/dashboard");
           break;
         default:
-          navigate("/dashboard");
+          navigate("/");
       }
     } catch (error) {
       setError(error.message || "Registration failed. Please try again.");
