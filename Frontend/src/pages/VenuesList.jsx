@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { 
-  Search, 
-  Filter, 
-  MapPin, 
-  Star, 
-  ChevronLeft, 
-  ChevronRight, 
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import {
+  Search,
+  Filter,
+  MapPin,
+  Star,
+  ChevronLeft,
+  ChevronRight,
   X,
   Menu,
   Wifi,
@@ -21,19 +21,19 @@ import {
   GraduationCap,
   Sandwich,
   Shield,
-  Clock
-} from 'lucide-react';
-import Header from '../components/Header';
-import VenueCard from '../components/VenueCard';
-import { API_ENDPOINTS } from '../config/api.js';
-import api, { handleApiError } from '../utils/api.js';
-import { getSportPlaceholder } from '../utils/placeholderImages';
+  Clock,
+} from "lucide-react";
+import Header from "../components/Header";
+import VenueCard from "../components/VenueCard";
+import { API_ENDPOINTS } from "../config/api.js";
+import api, { handleApiError } from "../utils/api.js";
+import { getSportPlaceholder } from "../utils/placeholderImages";
 
 const VenuesList = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  
+
   // Component state
   const [venues, setVenues] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +59,7 @@ const VenuesList = () => {
   useEffect(() => {
     const page = parseInt(searchParams.get("page")) || 1;
     setCurrentPage(page);
-    
+
     setFilters({
       search: searchParams.get("search") || "",
       sport: searchParams.get("sport") || "All Sports",
@@ -67,7 +67,8 @@ const VenuesList = () => {
       minPrice: searchParams.get("minPrice") || "",
       maxPrice: searchParams.get("maxPrice") || "",
       rating: searchParams.get("rating") || "",
-      amenities: searchParams.get("amenities")?.split(",").filter(Boolean) || [],
+      amenities:
+        searchParams.get("amenities")?.split(",").filter(Boolean) || [],
     });
   }, [searchParams]);
 
@@ -120,9 +121,14 @@ const VenuesList = () => {
   // Update URL when filters change
   useEffect(() => {
     const newSearchParams = new URLSearchParams();
-    
+
     Object.entries(filters).forEach(([key, value]) => {
-      if (value && value !== "" && value !== "All Sports" && value !== "All Locations") {
+      if (
+        value &&
+        value !== "" &&
+        value !== "All Sports" &&
+        value !== "All Locations"
+      ) {
         if (key === "amenities" && Array.isArray(value) && value.length > 0) {
           newSearchParams.set(key, value.join(","));
         } else if (key !== "amenities") {
@@ -160,55 +166,82 @@ const VenuesList = () => {
   const generateMockVenues = () => {
     const allMockVenues = [];
     const venueNames = [
-      "Elite Sports Arena", "Champions Court", "Victory Sports Zone", "Power Play Complex",
-      "Athletic Excellence Hub", "Premium Sports Center", "Ultimate Game Zone", "Sports Paradise",
-      "Fitness First Arena", "Play Zone Complex", "Active Life Center", "Game Time Sports",
-      "Winners Sports Club", "Athletic Arena Pro", "Sports Complex Elite", "Champions Arena",
-      "Victory Courts", "Premier Sports Hub", "Ultimate Athletic Center", "Elite Game Zone",
-      "Sports Excellence", "Athletic Champions", "Victory Elite", "Premier Play Zone"
+      "Elite Sports Arena",
+      "Champions Court",
+      "Victory Sports Zone",
+      "Power Play Complex",
+      "Athletic Excellence Hub",
+      "Premium Sports Center",
+      "Ultimate Game Zone",
+      "Sports Paradise",
+      "Fitness First Arena",
+      "Play Zone Complex",
+      "Active Life Center",
+      "Game Time Sports",
+      "Winners Sports Club",
+      "Athletic Arena Pro",
+      "Sports Complex Elite",
+      "Champions Arena",
+      "Victory Courts",
+      "Premier Sports Hub",
+      "Ultimate Athletic Center",
+      "Elite Game Zone",
+      "Sports Excellence",
+      "Athletic Champions",
+      "Victory Elite",
+      "Premier Play Zone",
     ];
 
     const locations = [
-      "Satellite, Ahmedabad", "Bopal, Ahmedabad", "Maninagar, Ahmedabad", 
-      "Prahlad Nagar, Ahmedabad", "Vastrapur, Ahmedabad", "Gota, Ahmedabad",
-      "Thaltej, Ahmedabad", "Navrangpura, Ahmedabad"
+      "Satellite, Ahmedabad",
+      "Bopal, Ahmedabad",
+      "Maninagar, Ahmedabad",
+      "Prahlad Nagar, Ahmedabad",
+      "Vastrapur, Ahmedabad",
+      "Gota, Ahmedabad",
+      "Thaltej, Ahmedabad",
+      "Navrangpura, Ahmedabad",
     ];
 
     // Generate all venues first
     for (let i = 0; i < 24; i++) {
       const rating = parseFloat((3.8 + Math.random() * 1.2).toFixed(1));
-      const minPrice = 400 + (i * 50);
-      const maxPrice = 800 + (i * 100);
-      
+      const minPrice = 400 + i * 50;
+      const maxPrice = 800 + i * 100;
+
       allMockVenues.push({
         _id: `mock-${i + 1}`,
         name: venueNames[i] || `Sports Venue ${i + 1}`,
-        location: { 
+        location: {
           address: locations[i % locations.length],
           city: "Ahmedabad",
-          state: "Gujarat"
+          state: "Gujarat",
         },
         images: [getSportPlaceholder(`Venue ${i + 1}`, 400, 250)],
         rating: rating,
-        amenities: amenitiesOptions.slice(0, 3 + (i % 5)).map(a => a.name),
+        amenities: amenitiesOptions.slice(0, 3 + (i % 5)).map((a) => a.name),
         sportsTypes: sportsOptions.slice(1, 3 + (i % 3)),
-        priceRange: { 
-          min: minPrice, 
-          max: maxPrice 
+        priceRange: {
+          min: minPrice,
+          max: maxPrice,
         },
         totalCourts: 3 + (i % 6),
         isActive: true,
-        description: `Premium sports facility in ${locations[i % locations.length]} with modern amenities and professional courts.`,
+        description: `Premium sports facility in ${
+          locations[i % locations.length]
+        } with modern amenities and professional courts.`,
       });
     }
 
     // Apply filters
-    let filteredVenues = allMockVenues.filter(venue => {
+    let filteredVenues = allMockVenues.filter((venue) => {
       // Search filter
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        if (!venue.name.toLowerCase().includes(searchTerm) && 
-            !venue.location.address.toLowerCase().includes(searchTerm)) {
+        if (
+          !venue.name.toLowerCase().includes(searchTerm) &&
+          !venue.location.address.toLowerCase().includes(searchTerm)
+        ) {
           return false;
         }
       }
@@ -228,10 +261,16 @@ const VenuesList = () => {
       }
 
       // Price range filter
-      if (filters.minPrice && venue.priceRange.min < parseInt(filters.minPrice)) {
+      if (
+        filters.minPrice &&
+        venue.priceRange.min < parseInt(filters.minPrice)
+      ) {
         return false;
       }
-      if (filters.maxPrice && venue.priceRange.max > parseInt(filters.maxPrice)) {
+      if (
+        filters.maxPrice &&
+        venue.priceRange.max > parseInt(filters.maxPrice)
+      ) {
         return false;
       }
 
@@ -242,7 +281,7 @@ const VenuesList = () => {
 
       // Amenities filter
       if (filters.amenities.length > 0) {
-        const hasAllAmenities = filters.amenities.every(amenity => 
+        const hasAllAmenities = filters.amenities.every((amenity) =>
           venue.amenities.includes(amenity)
         );
         if (!hasAllAmenities) {
@@ -265,19 +304,19 @@ const VenuesList = () => {
 
   // Handle filter changes
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
     setCurrentPage(1); // Reset to first page when filters change
   };
 
   const handleAmenityToggle = (amenity) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity]
+        ? prev.amenities.filter((a) => a !== amenity)
+        : [...prev.amenities, amenity],
     }));
     setCurrentPage(1);
   };
@@ -297,7 +336,7 @@ const VenuesList = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Generate pagination numbers
@@ -306,7 +345,7 @@ const VenuesList = () => {
     const showPages = 5;
     let start = Math.max(1, currentPage - Math.floor(showPages / 2));
     let end = Math.min(totalPages, start + showPages - 1);
-    
+
     if (end - start + 1 < showPages) {
       start = Math.max(1, end - showPages + 1);
     }
@@ -314,14 +353,14 @@ const VenuesList = () => {
     for (let i = start; i <= end; i++) {
       numbers.push(i);
     }
-    
+
     return numbers;
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -332,7 +371,7 @@ const VenuesList = () => {
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
               Discover and book premium sports venues across the city
             </p>
-            
+
             {/* Search Bar */}
             <div className="max-w-2xl mx-auto">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -342,7 +381,9 @@ const VenuesList = () => {
                     type="text"
                     placeholder="Search venues..."
                     value={filters.search}
-                    onChange={(e) => handleFilterChange("search", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("search", e.target.value)
+                    }
                     className="w-full pl-12 pr-4 py-4 text-gray-900 rounded-lg border-0 focus:ring-4 focus:ring-white/30 text-lg"
                   />
                 </div>
@@ -392,8 +433,10 @@ const VenuesList = () => {
                   onChange={(e) => handleFilterChange("sport", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  {sportsOptions.map(sport => (
-                    <option key={sport} value={sport}>{sport}</option>
+                  {sportsOptions.map((sport) => (
+                    <option key={sport} value={sport}>
+                      {sport}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -405,11 +448,15 @@ const VenuesList = () => {
                 </label>
                 <select
                   value={filters.location}
-                  onChange={(e) => handleFilterChange("location", e.target.value)}
+                  onChange={(e) =>
+                    handleFilterChange("location", e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  {locationOptions.map(location => (
-                    <option key={location} value={location}>{location}</option>
+                  {locationOptions.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -424,14 +471,18 @@ const VenuesList = () => {
                     type="number"
                     placeholder="Min"
                     value={filters.minPrice}
-                    onChange={(e) => handleFilterChange("minPrice", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("minPrice", e.target.value)
+                    }
                     className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <input
                     type="number"
                     placeholder="Max"
                     value={filters.maxPrice}
-                    onChange={(e) => handleFilterChange("maxPrice", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("maxPrice", e.target.value)
+                    }
                     className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -462,10 +513,13 @@ const VenuesList = () => {
                 Amenities
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {amenitiesOptions.map(amenity => {
+                {amenitiesOptions.map((amenity) => {
                   const Icon = amenity.icon;
                   return (
-                    <label key={amenity.name} className="flex items-center space-x-2 cursor-pointer">
+                    <label
+                      key={amenity.name}
+                      className="flex items-center space-x-2 cursor-pointer"
+                    >
                       <input
                         type="checkbox"
                         checked={filters.amenities.includes(amenity.name)}
@@ -473,7 +527,9 @@ const VenuesList = () => {
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <Icon className="h-4 w-4 text-gray-600" />
-                      <span className="text-sm text-gray-700">{amenity.name}</span>
+                      <span className="text-sm text-gray-700">
+                        {amenity.name}
+                      </span>
                     </label>
                   );
                 })}
@@ -498,10 +554,14 @@ const VenuesList = () => {
                 </p>
               )}
             </div>
-            
+
             {/* Active Filters Display */}
-            {Object.values(filters).some(value => 
-              Array.isArray(value) ? value.length > 0 : value !== "" && value !== "All Sports" && value !== "All Locations"
+            {Object.values(filters).some((value) =>
+              Array.isArray(value)
+                ? value.length > 0
+                : value !== "" &&
+                  value !== "All Sports" &&
+                  value !== "All Locations"
             ) && (
               <div className="flex flex-wrap gap-2">
                 {filters.search && (
@@ -533,13 +593,23 @@ const VenuesList = () => {
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  <svg
+                    className="h-5 w-5 text-red-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="ml-3">
                   <p className="text-red-800 text-sm">{error}</p>
-                  <p className="text-red-600 text-xs mt-1">Showing sample venues instead.</p>
+                  <p className="text-red-600 text-xs mt-1">
+                    Showing sample venues instead.
+                  </p>
                 </div>
               </div>
             </div>
@@ -583,7 +653,7 @@ const VenuesList = () => {
                     <ChevronLeft className="h-5 w-5" />
                   </button>
 
-                  {getPaginationNumbers().map(number => (
+                  {getPaginationNumbers().map((number) => (
                     <button
                       key={number}
                       onClick={() => handlePageChange(number)}
@@ -612,7 +682,7 @@ const VenuesList = () => {
             <div className="text-center py-16">
               <div className="w-24 h-24 mx-auto mb-6 text-gray-300">
                 <svg fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">

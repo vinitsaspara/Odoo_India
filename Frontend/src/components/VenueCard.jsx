@@ -7,7 +7,7 @@ import {
 
 const VenueCard = ({ venue }) => {
   const navigate = useNavigate();
-  
+
   const {
     _id,
     name,
@@ -104,7 +104,7 @@ const VenueCard = ({ venue }) => {
         )}
 
         {/* Action Button */}
-        <button 
+        <button
           onClick={handleViewDetails}
           className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
         >
