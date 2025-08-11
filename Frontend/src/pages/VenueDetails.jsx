@@ -100,7 +100,7 @@ const VenueDetails = () => {
     return {
       _id: venueId || 'mock-1',
       name: venueNames[safeIndex] || 'Elite Sports Arena',
-      description: Premium sports facility offering world-class amenities and professional courts. Located in the heart of ${locations[safeIndex % locations.length]}, we provide an exceptional sporting experience for athletes of all levels.,
+      description: `Premium sports facility offering world-class amenities and professional courts. Located in the heart of ${locations[safeIndex % locations.length]}, we provide an exceptional sporting experience for athletes of all levels.`,
       location: {
         address: locations[safeIndex % locations.length],
         city: 'Ahmedabad',
@@ -112,10 +112,10 @@ const VenueDetails = () => {
         email: 'info@elitesportsarena.com'
       },
       images: [
-        getSportPlaceholder(${venueNames[safeIndex]} Main Court, 800, 400),
-        getSportPlaceholder(${venueNames[safeIndex]} Facilities, 800, 400),
-        getSportPlaceholder(${venueNames[safeIndex]} Interior, 800, 400),
-        getSportPlaceholder(${venueNames[safeIndex]} Equipment, 800, 400)
+        getSportPlaceholder(`${venueNames[safeIndex]} Main Court`, 800, 400),
+        getSportPlaceholder(`${venueNames[safeIndex]} Facilities`, 800, 400),
+        getSportPlaceholder(`${venueNames[safeIndex]} Interior`, 800, 400),
+        getSportPlaceholder(`${venueNames[safeIndex]} Equipment`, 800, 400)
       ],
       rating: parseFloat((4.2 + Math.random() * 0.8).toFixed(1)),
       totalReviews: 156 + (safeIndex * 23),
@@ -196,7 +196,7 @@ const VenueDetails = () => {
     };
 
     console.log('Booking submitted:', bookingData);
-    alert(Booking confirmed for ${selectedCourt.name} on ${selectedDate} at ${selectedTimeSlot});
+    alert(`Booking confirmed for ${selectedCourt.name} on ${selectedDate} at ${selectedTimeSlot}`);
     setShowBookingModal(false);
     setSelectedCourt(null);
     setSelectedTimeSlot('');
@@ -288,9 +288,9 @@ const VenueDetails = () => {
                   <>
                     <img
                       src={venue.images[currentImageIndex]}
-                      alt={${venue.name} - Image ${currentImageIndex + 1}}
+                      alt={`${venue.name} - Image ${currentImageIndex + 1}`}
                       className="w-full h-full object-cover"
-                      onError={(e) => handleImageError(e, ${venue.name} Image)}
+                      onError={(e) => handleImageError(e, `${venue.name} Image`)}
                     />
                     {venue.images.length > 1 && (
                       <>
