@@ -89,7 +89,7 @@ const VenueCard = ({ venue }) => {
     <motion.div
       whileHover={{ scale: 1.02, y: -8 }}
       transition={{ duration: 0.3 }}
-      className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl overflow-hidden border border-white/30 group relative"
+      className="bg-white/95  backdrop-blur-xl rounded-3xl shadow-xl overflow-hidden border border-white/30 group relative"
     >
       {/* Image */}
       <div

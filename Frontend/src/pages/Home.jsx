@@ -24,6 +24,17 @@ import {
   Clock,
   CheckCircle,
   ChevronRight,
+  Grid3X3,
+  SlidersHorizontal,
+  Compass,
+  Activity,
+  Building2,
+  DollarSign,
+  Wifi,
+  Car,
+  Coffee,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import VenueCard from "../components/VenueCard";
@@ -38,38 +49,89 @@ const Home = () => {
 
   // State for venues and sports
   const [venues, setVenues] = useState([]);
+  const [filteredVenues, setFilteredVenues] = useState([]);
   const [popularSports, setPopularSports] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterSport, setFilterSport] = useState("");
-  const [filterLocation, setFilterLocation] = useState("");
   const [error, setError] = useState("");
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSport, setSelectedSport] = useState("All Sports");
+  const [selectedLocation, setSelectedLocation] = useState("All Locations");
+  const [selectedPriceRange, setSelectedPriceRange] = useState("All Prices");
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Filter options
+  const sportsOptions = [
+    "All Sports",
+    "Football",
+    "Basketball",
+    "Tennis",
+    "Badminton",
+    "Cricket",
+    "Swimming",
+    "Volleyball",
+    "Table Tennis",
+  ];
+  const locationOptions = [
+    "All Locations",
+    "Ahmedabad",
+    "Satellite",
+    "Bopal",
+    "Maninagar",
+    "Prahlad Nagar",
+    "SG Highway",
+  ];
+  const priceRanges = [
+    "All Prices",
+    "₹0-500",
+    "₹500-1000",
+    "₹1000-1500",
+    "₹1500-2000",
+    "₹2000+",
+  ];
+  const amenityOptions = [
+    "Parking",
+    "WiFi",
+    "Cafeteria",
+    "Locker Room",
+    "AC",
+    "Shower",
+    "Equipment Rental",
+  ];
 
   // Mock data for popular sports with proper placeholder images
   const sportsData = [
     {
       name: "Football",
       image: getSportPlaceholder("Football", 200, 150),
+      venues: 45,
     },
     {
       name: "Basketball",
       image: getSportPlaceholder("Basketball", 200, 150),
+      venues: 32,
     },
     {
       name: "Tennis",
       image: getSportPlaceholder("Tennis", 200, 150),
+      venues: 28,
     },
     {
       name: "Badminton",
       image: getSportPlaceholder("Badminton", 200, 150),
+      venues: 56,
     },
     {
       name: "Cricket",
       image: getSportPlaceholder("Cricket", 200, 150),
+      venues: 23,
     },
     {
       name: "Swimming",
       image: getSportPlaceholder("Swimming", 200, 150),
+      venues: 18,
     },
   ];
 
@@ -79,29 +141,36 @@ const Home = () => {
     setPopularSports(sportsData);
   }, []);
 
+  // Filter venues when filters change
+  useEffect(() => {
+    applyFilters();
+  }, [
+    venues,
+    searchQuery,
+    selectedSport,
+    selectedLocation,
+    selectedPriceRange,
+    selectedAmenities,
+  ]);
+
   const fetchVenues = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      // Try to fetch venues - this is a public endpoint
-      // Make the call without any auth headers to avoid auth issues
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}${
           API_ENDPOINTS.VENUES.LIST
         }`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
         }
       );
 
       const data = await response.json();
 
       if (data.success && Array.isArray(data.venues)) {
-        // Ensure venues have proper structure
         const validVenues = data.venues.filter(
           (venue) => venue && venue._id && venue.name && venue.location
         );
@@ -111,16 +180,106 @@ const Home = () => {
       }
     } catch (error) {
       console.error("Error fetching venues:", error);
-
-      // Handle the error appropriately
-      const errorMessage = handleApiError(error, setError);
-
-      // Fallback to mock data if API fails
-      console.log("Using mock data as fallback");
       setVenues(generateMockVenues());
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Apply filters to venues
+  const applyFilters = () => {
+    let filtered = [...venues];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(
+        (venue) =>
+          venue.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          venue.location?.address
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Sport filter
+    if (selectedSport !== "All Sports") {
+      filtered = filtered.filter((venue) =>
+        venue.sportsTypes?.includes(selectedSport)
+      );
+    }
+
+    // Location filter
+    if (selectedLocation !== "All Locations") {
+      filtered = filtered.filter((venue) =>
+        venue.location?.address
+          ?.toLowerCase()
+          .includes(selectedLocation.toLowerCase())
+      );
+    }
+
+    // Price range filter
+    if (selectedPriceRange !== "All Prices") {
+      const [min, max] = getPriceRange(selectedPriceRange);
+      filtered = filtered.filter((venue) => {
+        if (!venue.courts || venue.courts.length === 0) return false;
+        const prices = venue.courts.map((court) => court.pricePerHour || 0);
+        const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+        return avgPrice >= min && (max === Infinity || avgPrice <= max);
+      });
+    }
+
+    // Amenities filter
+    if (selectedAmenities.length > 0) {
+      filtered = filtered.filter((venue) =>
+        selectedAmenities.every((amenity) => venue.amenities?.includes(amenity))
+      );
+    }
+
+    setFilteredVenues(filtered);
+  };
+
+  const getPriceRange = (range) => {
+    switch (range) {
+      case "₹0-500":
+        return [0, 500];
+      case "₹500-1000":
+        return [500, 1000];
+      case "₹1000-1500":
+        return [1000, 1500];
+      case "₹1500-2000":
+        return [1500, 2000];
+      case "₹2000+":
+        return [2000, Infinity];
+      default:
+        return [0, Infinity];
+    }
+  };
+
+  const toggleAmenity = (amenity) => {
+    setSelectedAmenities((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((a) => a !== amenity)
+        : [...prev, amenity]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setSelectedSport("All Sports");
+    setSelectedLocation("All Locations");
+    setSelectedPriceRange("All Prices");
+    setSelectedAmenities([]);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    navigate(
+      `/venues?search=${encodeURIComponent(
+        searchQuery
+      )}&sport=${encodeURIComponent(
+        selectedSport
+      )}&location=${encodeURIComponent(selectedLocation)}`
+    );
   };
 
   // Generate mock venues for demonstration
@@ -136,10 +295,11 @@ const Home = () => {
           { url: getSportPlaceholder("Sports Arena Court 2", 300, 200) },
         ],
         rating: 4.5,
-        amenities: ["Parking", "Cafeteria", "Locker Room"],
+        amenities: ["Parking", "Cafeteria", "Locker Room", "AC"],
         sportsTypes: ["Football", "Basketball", "Tennis"],
         priceRange: { min: 500, max: 1500 },
         totalCourts: 8,
+        courts: [{ pricePerHour: 800 }, { pricePerHour: 1200 }],
       },
       {
         _id: "mock-2",
@@ -151,10 +311,11 @@ const Home = () => {
           { url: getSportPlaceholder("Elite Club Court", 300, 200) },
         ],
         rating: 4.8,
-        amenities: ["Swimming Pool", "Gym", "Spa"],
+        amenities: ["Swimming Pool", "WiFi", "Spa", "Parking"],
         sportsTypes: ["Swimming", "Tennis", "Badminton"],
         priceRange: { min: 800, max: 2000 },
         totalCourts: 12,
+        courts: [{ pricePerHour: 1500 }, { pricePerHour: 1800 }],
       },
       {
         _id: "mock-3",
@@ -163,10 +324,11 @@ const Home = () => {
         coverImage: { url: getSportPlaceholder("Community Hub", 300, 200) },
         images: [{ url: getSportPlaceholder("Community Hub Field", 300, 200) }],
         rating: 4.2,
-        amenities: ["Parking", "Refreshments"],
+        amenities: ["Parking", "Cafeteria"],
         sportsTypes: ["Cricket", "Football"],
         priceRange: { min: 300, max: 800 },
         totalCourts: 6,
+        courts: [{ pricePerHour: 400 }, { pricePerHour: 600 }],
       },
       {
         _id: "mock-4",
@@ -179,383 +341,335 @@ const Home = () => {
           { url: getSportPlaceholder("Premium Center Lounge", 300, 200) },
         ],
         rating: 4.7,
-        amenities: ["AC Rooms", "Pro Shop", "Coaching"],
-        sportsTypes: ["Badminton", "Table Tennis", "Squash"],
+        amenities: ["AC", "WiFi", "Equipment Rental", "Locker Room"],
+        sportsTypes: ["Badminton", "Table Tennis", "Volleyball"],
         priceRange: { min: 600, max: 1800 },
         totalCourts: 10,
+        courts: [{ pricePerHour: 1000 }, { pricePerHour: 1400 }],
+      },
+      {
+        _id: "mock-5",
+        name: "Urban Sports Complex",
+        location: { address: "SG Highway, Ahmedabad, Gujarat" },
+        coverImage: { url: getSportPlaceholder("Urban Complex", 300, 200) },
+        images: [{ url: getSportPlaceholder("Urban Complex Court", 300, 200) }],
+        rating: 4.4,
+        amenities: ["Parking", "WiFi", "Shower", "Cafeteria"],
+        sportsTypes: ["Basketball", "Volleyball", "Tennis"],
+        priceRange: { min: 700, max: 1600 },
+        totalCourts: 14,
+        courts: [{ pricePerHour: 900 }, { pricePerHour: 1300 }],
+      },
+      {
+        _id: "mock-6",
+        name: "Sports Paradise",
+        location: { address: "Satellite, Ahmedabad, Gujarat" },
+        coverImage: { url: getSportPlaceholder("Sports Paradise", 300, 200) },
+        images: [{ url: getSportPlaceholder("Paradise Pool", 300, 200) }],
+        rating: 4.6,
+        amenities: ["Swimming Pool", "AC", "Locker Room", "Parking"],
+        sportsTypes: ["Swimming", "Water Polo"],
+        priceRange: { min: 1000, max: 2500 },
+        totalCourts: 4,
+        courts: [{ pricePerHour: 1800 }, { pricePerHour: 2200 }],
       },
     ];
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-
-    // Build search parameters
-    const searchParams = new URLSearchParams();
-
-    if (searchQuery.trim()) {
-      searchParams.set("search", searchQuery.trim());
-    }
-
-    if (filterSport && filterSport !== "") {
-      searchParams.set("sport", filterSport);
-    }
-
-    if (filterLocation.trim()) {
-      searchParams.set("location", filterLocation.trim());
-    }
-
-    // Navigate to venues page with search parameters
-    const searchString = searchParams.toString();
-    if (searchString) {
-      navigate(`/venues?${searchString}`);
-    } else {
-      navigate("/venues");
-    }
-  };
-
-  const filteredVenues = venues.filter((venue) => {
-    const matchesSearch =
-      venue.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      venue.location?.address
-        ?.toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    const matchesSport =
-      filterSport === "" || venue.sportsTypes?.includes(filterSport);
-    const matchesLocation =
-      filterLocation === "" ||
-      venue.location?.address
-        ?.toLowerCase()
-        .includes(filterLocation.toLowerCase()) ||
-      venue.location?.city
-        ?.toLowerCase()
-        .includes(filterLocation.toLowerCase()) ||
-      venue.location?.area
-        ?.toLowerCase()
-        .includes(filterLocation.toLowerCase());
-    return matchesSearch && matchesSport && matchesLocation;
-  });
-
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden pt-16">
-      {/* Floating Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            rotate: 360,
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            rotate: -360,
-            scale: [1.1, 1, 1.1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          className="absolute top-1/2 -left-40 w-96 h-96 bg-gradient-to-br from-cyan-200/20 to-pink-200/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            rotate: 180,
-            scale: [1, 1.3, 1],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          className="absolute -bottom-40 right-1/4 w-64 h-64 bg-gradient-to-br from-purple-200/20 to-blue-200/20 rounded-full blur-3xl"
-        />
-      </div>
-
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 py-20 bg-white">
-        <div className="max-w-7xl mx-auto text-center relative z-10">
-          {/* Main Hero Card */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Professional Header Section */}
+      <section className="relative overflow-hidden bg-white border-b border-gray-100">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-purple-50"></div>
+        <div className="relative container mx-auto px-6 py-16">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-12 border border-white/30 mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-4xl mx-auto"
           >
-            {/* Hero Icon */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl mb-8 shadow-lg"
+              className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6 shadow-lg"
             >
-              <Rocket className="w-10 h-10 text-white" />
+              <Rocket className="w-8 h-8 text-white" />
             </motion.div>
 
-            {/* Hero Text */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent leading-tight"
-            >
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
               QuickCourt
-            </motion.h1>
+            </h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-xl md:text-2xl text-gray-700 mb-8 max-w-3xl mx-auto leading-relaxed"
-            >
+            <p className="text-xl text-slate-600 mb-8 leading-relaxed">
               Your gateway to premium sports venues. Book instantly, play
               passionately, connect with champions.
-            </motion.p>
+            </p>
 
-            {/* Search Card */}
+            {/* Professional Search Section */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-              className="max-w-2xl mx-auto mb-8"
+              transition={{ delay: 0.4 }}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/50 max-w-3xl mx-auto"
             >
-              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/40">
-                <form onSubmit={handleSearch} className="flex flex-col gap-4">
-                  {/* First Row - Search Input */}
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search venues, sports, or activities..."
-                      className="w-full pl-12 pr-4 py-4 text-gray-900 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+              <form onSubmit={handleSearch} className="space-y-4">
+                {/* Main Search */}
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search venues, sports, or locations..."
+                    className="w-full pl-12 pr-4 py-4 text-slate-700 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/90"
+                  />
+                </div>
+
+                {/* Quick Filters Row */}
+                <div className="flex flex-wrap gap-3 items-center justify-center">
+                  <select
+                    value={selectedSport}
+                    onChange={(e) => setSelectedSport(e.target.value)}
+                    className="px-4 py-2 rounded-lg border border-gray-200 bg-white/90 text-slate-700 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  >
+                    {sportsOptions.map((sport) => (
+                      <option key={sport} value={sport}>
+                        {sport}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    className="px-4 py-2 rounded-lg border border-gray-200 bg-white/90 text-slate-700 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  >
+                    {locationOptions.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
+                      </option>
+                    ))}
+                  </select>
+
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowFilters(!showFilters)}
+                    type="button"
+                    className="flex items-center space-x-2 px-4 py-2 bg-white/90 border border-gray-200 rounded-lg text-slate-700 hover:bg-gray-50 transition-all duration-200"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    <span>More Filters</span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        showFilters ? "rotate-180" : ""
+                      }`}
                     />
-                  </div>
+                  </motion.button>
 
-                  {/* Second Row - Filters and Search Button */}
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1 relative">
-                      <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <input
-                        type="text"
-                        value={filterLocation}
-                        onChange={(e) => setFilterLocation(e.target.value)}
-                        placeholder="Enter location (e.g., Ahmedabad, Satellite)"
-                        className="w-full pl-12 pr-4 py-4 text-gray-900 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
-                      />
-                    </div>
-                    <select
-                      value={filterSport}
-                      onChange={(e) => setFilterSport(e.target.value)}
-                      className="px-4 py-4 text-gray-900 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white md:min-w-[180px]"
-                    >
-                      <option value="">All Sports</option>
-                      {sportsData.map((sport) => (
-                        <option key={sport.name} value={sport.name}>
-                          {sport.name}
-                        </option>
-                      ))}
-                    </select>
-                    <motion.button
-                      type="submit"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg md:min-w-[140px]"
-                    >
-                      <Zap className="w-5 h-5 mr-2 inline" />
-                      Search
-                    </motion.button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-
-            {/* Quick Action Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-            >
-              {!isAuthenticated ? (
-                <>
                   <motion.button
-                    onClick={() => navigate("/signup")}
+                    type="submit"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg"
                   >
-                    <Zap className="w-5 h-5 mr-2 inline" />
-                    Get Started
+                    <Search className="w-4 h-4 mr-2 inline" />
+                    Search
                   </motion.button>
-                  <motion.button
-                    onClick={() => navigate("/login")}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="bg-white/95 backdrop-blur-sm text-blue-600 px-8 py-4 rounded-xl font-semibold border border-blue-200 hover:bg-white transition-all duration-200 shadow-lg"
-                  >
-                    <ArrowRight className="w-5 h-5 mr-2 inline" />
-                    Sign In
-                  </motion.button>
-                </>
-              ) : (
-                <motion.button
-                  onClick={() => {
-                    if (user?.role === "admin") navigate("/admin/dashboard");
-                    else if (user?.role === "owner")
-                      navigate("/owner/dashboard");
-                    else navigate("/dashboard");
-                  }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-green-500 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:from-green-600 hover:to-blue-700 transition-all duration-200"
-                >
-                  <Target className="w-5 h-5 mr-2 inline" />
-                  Go to Dashboard
-                </motion.button>
-              )}
+                </div>
+
+                {/* Advanced Filters Panel */}
+                <AnimatePresence>
+                  {showFilters && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-100"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Price Range */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Price Range
+                          </label>
+                          <select
+                            value={selectedPriceRange}
+                            onChange={(e) =>
+                              setSelectedPriceRange(e.target.value)
+                            }
+                            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-500"
+                          >
+                            {priceRanges.map((range) => (
+                              <option key={range} value={range}>
+                                {range}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Amenities */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Amenities
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {amenityOptions.map((amenity) => (
+                              <motion.button
+                                key={amenity}
+                                type="button"
+                                onClick={() => toggleAmenity(amenity)}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+                                  selectedAmenities.includes(amenity)
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-white text-slate-600 border border-gray-200 hover:bg-gray-50"
+                                }`}
+                              >
+                                {amenity}
+                              </motion.button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center mt-4">
+                        <button
+                          type="button"
+                          onClick={clearAllFilters}
+                          className="text-sm text-slate-500 hover:text-slate-700 flex items-center space-x-1"
+                        >
+                          <X className="h-4 w-4" />
+                          <span>Clear All</span>
+                        </button>
+                        <span className="text-sm text-slate-500">
+                          {filteredVenues.length} venues found
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </form>
             </motion.div>
           </motion.div>
-
-          {/* Stats Cards */}
         </div>
       </section>
 
-      {/* Role-specific Welcome Sections */}
-      {isAuthenticated && user?.role === "owner" && (
-        <section className="py-16 px-4 bg-white">
-          <div className="max-w-4xl mx-auto">
+      {/* All Venues Section - Professional Display */}
+      <section className="py-16 px-6">
+        <div className="container mx-auto max-w-7xl">
+          {/* Section Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg border border-white/50">
+              <Building2 className="h-6 w-6 text-blue-600" />
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                All Venues
+              </h2>
+              <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-bold">
+                {filteredVenues.length} Available
+              </span>
+            </div>
+            <p className="text-slate-600 mt-4 text-lg">
+              Discover premium sports venues tailored to your needs
+            </p>
+          </motion.div>
+
+          {/* Loading State */}
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-16"
+            >
+              <div className="inline-flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+                <span className="text-slate-600 font-medium">
+                  Loading amazing venues...
+                </span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Error State */}
+          {error && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-              className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-3xl p-8 text-white text-center shadow-2xl relative overflow-hidden"
+              className="mb-8 p-6 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-2xl shadow-lg max-w-2xl mx-auto"
             >
-              <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-              <div className="relative z-10">
-                <Crown className="w-16 h-16 mx-auto mb-4 text-yellow-300" />
-                <h2 className="text-3xl font-bold mb-4">
-                  Welcome back, {user.name}! 👑
-                </h2>
-                <p className="text-xl mb-6 text-purple-100">
-                  Manage your empire of venues and track your success
-                </p>
-                <motion.button
-                  onClick={() => navigate("/owner/dashboard")}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-white text-purple-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-200 shadow-lg"
-                >
-                  <TrendingUp className="w-5 h-5 mr-2 inline" />
-                  Owner Dashboard
-                </motion.button>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      {isAuthenticated && user?.role === "admin" && (
-        <section className="py-16 px-4 bg-white">
-          <div className="max-w-4xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-              className="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-3xl p-8 text-white text-center shadow-2xl relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-              <div className="relative z-10">
-                <Shield className="w-16 h-16 mx-auto mb-4 text-blue-300" />
-                <h2 className="text-3xl font-bold mb-4">
-                  Welcome back, Admin {user.name}! ⚡
-                </h2>
-                <p className="text-xl mb-6 text-indigo-100">
-                  Command center for platform operations and insights
-                </p>
-                <motion.button
-                  onClick={() => navigate("/admin/dashboard")}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-white text-indigo-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-200 shadow-lg"
-                >
-                  <Globe className="w-5 h-5 mr-2 inline" />
-                  Admin Dashboard
-                </motion.button>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      {/* Book Venues Section - Only for players/users */}
-      {(!isAuthenticated || user?.role === "user") && (
-        <section className="py-16 px-4 bg-white">
-          <div className="max-w-7xl mx-auto">
-            {/* Section Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-12"
-            >
-              <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/30 inline-block">
-                <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                  Featured Venues
-                </h2>
-                <p className="text-gray-600 text-lg max-w-2xl">
-                  Discover premium sports venues near you
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Error Message */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mb-8 p-6 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-2xl shadow-lg"
-              >
-                <div className="flex items-center text-red-800">
-                  <div className="w-5 h-5 text-red-500 mr-3">⚠️</div>
-                  <div>
-                    <p className="font-medium">{error}</p>
-                    <p className="text-red-600 text-sm mt-1">
-                      Showing demo venues instead.
-                    </p>
-                  </div>
+              <div className="flex items-center text-red-800">
+                <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
+                <div>
+                  <p className="font-medium">{error}</p>
+                  <p className="text-red-600 text-sm mt-1">
+                    Showing demo venues instead.
+                  </p>
                 </div>
-              </motion.div>
-            )}
+              </div>
+            </motion.div>
+          )}
 
-            {/* Venues Grid */}
+          {/* Venues Grid */}
+          {!isLoading && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              {filteredVenues.slice(0, 8).map((venue, index) => (
-                <motion.div
-                  key={venue._id}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="group"
-                >
-                  <VenueCard venue={venue} />
-                </motion.div>
-              ))}
+              <AnimatePresence>
+                {filteredVenues.map((venue, index) => (
+                  <motion.div
+                    key={venue._id}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -30 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    whileHover={{ y: -8 }}
+                    className="group"
+                  >
+                    <VenueCard venue={venue} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </motion.div>
+          )}
 
-            {/* View All Button */}
+          {/* Empty State */}
+          {!isLoading && filteredVenues.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-16"
+            >
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-12 shadow-lg border border-white/50 max-w-md mx-auto">
+                <Compass className="h-16 w-16 text-slate-300 mx-auto mb-6" />
+                <h3 className="text-xl font-bold text-slate-800 mb-3">
+                  No venues found
+                </h3>
+                <p className="text-slate-600 mb-6">
+                  Try adjusting your search filters or explore different
+                  locations.
+                </p>
+                <motion.button
+                  onClick={clearAllFilters}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                >
+                  Clear Filters
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* View All Button */}
+          {!isLoading && filteredVenues.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -568,30 +682,32 @@ const Home = () => {
                 whileTap={{ scale: 0.95 }}
                 className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-12 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl border border-blue-400/30"
               >
+                <Grid3X3 className="w-5 h-5 mr-2 inline" />
                 View All Venues
               </motion.button>
             </motion.div>
-          </div>
-        </section>
-      )}
+          )}
+        </div>
+      </section>
 
       {/* Popular Sports Section */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-16 px-6 bg-white/50">
+        <div className="container mx-auto max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/30 inline-block">
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            <div className="inline-flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg border border-white/50">
+              <Trophy className="h-6 w-6 text-purple-600" />
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Popular Sports
               </h2>
-              <p className="text-gray-600 text-lg max-w-2xl">
-                Choose from a variety of sports and find your perfect game
-              </p>
             </div>
+            <p className="text-slate-600 mt-4 text-lg">
+              Choose from a variety of sports and find your perfect game
+            </p>
           </motion.div>
 
           <motion.div
@@ -607,32 +723,49 @@ const Home = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 whileHover={{ scale: 1.1, y: -5 }}
-                className="group"
+                onClick={() => {
+                  setSelectedSport(sport.name);
+                  applyFilters();
+                }}
+                className="group cursor-pointer"
               >
-                <SportCard sport={sport} />
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 text-center shadow-lg border border-white/50 hover:shadow-xl transition-all duration-300">
+                  <img
+                    src={sport.image}
+                    alt={sport.name}
+                    className="w-16 h-16 mx-auto mb-4 rounded-xl object-cover"
+                  />
+                  <h3 className="font-bold text-slate-800 text-sm mb-1">
+                    {sport.name}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {sport.venues} venues
+                  </p>
+                </div>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-7xl mx-auto">
+      {/* Why Choose QuickCourt Section */}
+      <section className="py-16 px-6">
+        <div className="container mx-auto max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/30 inline-block">
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-4">
+            <div className="inline-flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg border border-white/50">
+              <Sparkles className="h-6 w-6 text-green-600" />
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
                 Why Choose QuickCourt?
               </h2>
-              <p className="text-gray-600 text-lg max-w-2xl">
-                Experience the future of sports venue booking
-              </p>
             </div>
+            <p className="text-slate-600 mt-4 text-lg">
+              Experience the future of sports venue booking
+            </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -640,25 +773,25 @@ const Home = () => {
               {
                 icon: Zap,
                 title: "Instant Booking",
-                desc: "Book in seconds",
+                desc: "Book courts in seconds with real-time availability",
                 color: "from-yellow-500 to-orange-500",
               },
               {
                 icon: Shield,
                 title: "Secure Payments",
-                desc: "Protected transactions",
+                desc: "Protected transactions with multiple payment options",
                 color: "from-green-500 to-emerald-500",
               },
               {
                 icon: Clock,
                 title: "24/7 Support",
-                desc: "Always here to help",
+                desc: "Round-the-clock customer service and assistance",
                 color: "from-blue-500 to-cyan-500",
               },
               {
                 icon: Award,
                 title: "Premium Quality",
-                desc: "Top-tier facilities",
+                desc: "Carefully curated top-tier sports facilities",
                 color: "from-purple-500 to-pink-500",
               },
             ].map((feature, index) => (
@@ -668,31 +801,31 @@ const Home = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 whileHover={{ scale: 1.05, y: -5 }}
-                className="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/30 text-center group"
+                className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 text-center group hover:shadow-xl transition-all duration-300"
               >
                 <div
                   className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-r ${feature.color} mb-4 shadow-lg group-hover:scale-110 transition-transform duration-200`}
                 >
                   <feature.icon className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-xl font-bold text-slate-800 mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600">{feature.desc}</p>
+                <p className="text-slate-600">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section className="py-20 px-4 bg-white">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* Final CTA Section - Continue Playing Button */}
+      <section className="py-20 px-6">
+        <div className="container mx-auto max-w-4xl text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8 }}
-            className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl p-12 text-white shadow-2xl relative overflow-hidden"
+            className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl p-12 text-white shadow-2xl"
           >
             <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10">
@@ -728,17 +861,12 @@ const Home = () => {
                 </div>
               ) : (
                 <motion.button
-                  onClick={() => {
-                    if (user?.role === "admin") navigate("/admin/dashboard");
-                    else if (user?.role === "owner")
-                      navigate("/owner/dashboard");
-                    else navigate("/dashboard");
-                  }}
+                  onClick={() => navigate("/venues")}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold shadow-lg hover:bg-gray-50 transition-all duration-200"
+                  className="bg-white text-blue-600 px-12 py-4 rounded-xl font-bold shadow-lg hover:bg-gray-50 transition-all duration-200 text-lg"
                 >
-                  <Target className="w-5 h-5 mr-2 inline" />
+                  <Play className="w-6 h-6 mr-3 inline" />
                   Continue Playing
                 </motion.button>
               )}
